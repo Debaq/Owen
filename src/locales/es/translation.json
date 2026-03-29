@@ -1,0 +1,163 @@
+{
+  "app": {
+    "name": "Sistema OWEN",
+    "description": "Sistema de horarios tipo W para Escuela tipo N"
+  },
+  "common": {
+    "welcome": "Bienvenido",
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "loading": "Cargando...",
+    "noData": "No hay datos disponibles",
+    "error": "Error",
+    "success": "Éxito",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "navigation": {
+    "dashboard": "Panel Principal",
+    "schedules": "Horarios",
+    "rooms": "Salas",
+    "buildings": "Edificios",
+    "map": "Mapa del Campus",
+    "requests": "Solicitudes",
+    "observations": "Observaciones",
+    "reports": "Reportes",
+    "settings": "Configuración"
+  },
+  "auth": {
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "loginButton": "Iniciar Sesión",
+    "loginError": "Credenciales inválidas",
+    "logoutConfirm": "¿Estás seguro que deseas cerrar sesión?"
+  },
+  "schedules": {
+    "title": "Gestión de Horarios",
+    "create": "Crear Horario",
+    "byRoom": "Por Sala",
+    "byTeacher": "Por Docente",
+    "bySubject": "Por Asignatura",
+    "byLevel": "Por Nivel",
+    "selectRoom": "Seleccionar Sala",
+    "selectTeacher": "Seleccionar Docente",
+    "selectSubject": "Seleccionar Asignatura",
+    "selectBlock": "Seleccionar Bloque",
+    "recurrence": "Recurrencia",
+    "conflicts": "Conflictos Detectados",
+    "noConflicts": "Sin conflictos"
+  },
+  "rooms": {
+    "title": "Gestión de Salas",
+    "create": "Crear Sala",
+    "code": "Código",
+    "name": "Nombre",
+    "building": "Edificio",
+    "floor": "Piso",
+    "type": "Tipo",
+    "capacity": "Capacidad",
+    "furniture": "Mobiliario",
+    "equipment": "Equipamiento",
+    "rules": "Reglas de Uso",
+    "available": "Disponible",
+    "occupied": "Ocupada",
+    "types": {
+      "aula": "Aula",
+      "laboratorio": "Laboratorio",
+      "auditorio": "Auditorio",
+      "taller": "Taller",
+      "sala_reuniones": "Sala de Reuniones"
+    }
+  },
+  "map": {
+    "title": "Mapa del Campus",
+    "showAvailability": "Mostrar Disponibilidad",
+    "nextClass": "Próxima Clase",
+    "viewSchedule": "Ver Horario Completo"
+  },
+  "requests": {
+    "title": "Solicitudes de Salas",
+    "create": "Nueva Solicitud",
+    "requester": "Solicitante",
+    "reason": "Motivo",
+    "preferredRoom": "Sala Preferida",
+    "requiredCapacity": "Capacidad Requerida",
+    "requiredEquipment": "Equipamiento Requerido",
+    "status": {
+      "pendiente": "Pendiente",
+      "aprobada": "Aprobada",
+      "rechazada": "Rechazada",
+      "auto_aprobada": "Auto-Aprobada"
+    }
+  },
+  "observations": {
+    "title": "Observaciones y Tickets",
+    "create": "Reportar Observación",
+    "scanQR": "Escanear QR",
+    "location": "Ubicación",
+    "category": "Categoría",
+    "description": "Descripción",
+    "priority": "Prioridad",
+    "assignedTo": "Asignado a",
+    "categories": {
+      "mantenimiento": "Mantenimiento",
+      "limpieza": "Limpieza",
+      "equipamiento": "Equipamiento",
+      "ruido": "Ruido",
+      "seguridad": "Seguridad",
+      "otro": "Otro"
+    },
+    "status": {
+      "nuevo": "Nuevo",
+      "revision": "En Revisión",
+      "en_proceso": "En Proceso",
+      "resuelto": "Resuelto",
+      "cerrado": "Cerrado"
+    },
+    "priorities": {
+      "baja": "Baja",
+      "media": "Media",
+      "alta": "Alta",
+      "urgente": "Urgente"
+    }
+  },
+  "reports": {
+    "title": "Reportes y Estadísticas",
+    "roomUsage": "Uso de Salas",
+    "occupancy": "Ocupación",
+    "teacherLoad": "Carga Horaria Docentes",
+    "exportPDF": "Exportar PDF",
+    "exportExcel": "Exportar Excel"
+  },
+  "settings": {
+    "title": "Configuración",
+    "careers": "Carreras",
+    "levels": "Niveles",
+    "subjects": "Asignaturas",
+    "teachers": "Docentes",
+    "blocks": "Bloques Horarios",
+    "seasons": "Temporadas",
+    "holidays": "Feriados"
+  },
+  "days": {
+    "sunday": "Domingo",
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado"
+  }
+}

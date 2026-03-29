@@ -1,0 +1,162 @@
+{
+  "app": {
+    "name": "Sistema OWEN",
+    "description": "Type W Schedule System for Type N School"
+  },
+  "common": {
+    "welcome": "Welcome",
+    "login": "Login",
+    "logout": "Logout",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "schedules": "Schedules",
+    "rooms": "Rooms",
+    "map": "Campus Map",
+    "requests": "Requests",
+    "observations": "Observations",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Login",
+    "loginError": "Invalid credentials",
+    "logoutConfirm": "Are you sure you want to logout?"
+  },
+  "schedules": {
+    "title": "Schedule Management",
+    "create": "Create Schedule",
+    "byRoom": "By Room",
+    "byTeacher": "By Teacher",
+    "bySubject": "By Subject",
+    "byLevel": "By Level",
+    "selectRoom": "Select Room",
+    "selectTeacher": "Select Teacher",
+    "selectSubject": "Select Subject",
+    "selectBlock": "Select Block",
+    "recurrence": "Recurrence",
+    "conflicts": "Conflicts Detected",
+    "noConflicts": "No conflicts"
+  },
+  "rooms": {
+    "title": "Room Management",
+    "create": "Create Room",
+    "code": "Code",
+    "name": "Name",
+    "building": "Building",
+    "floor": "Floor",
+    "type": "Type",
+    "capacity": "Capacity",
+    "furniture": "Furniture",
+    "equipment": "Equipment",
+    "rules": "Usage Rules",
+    "available": "Available",
+    "occupied": "Occupied",
+    "types": {
+      "aula": "Classroom",
+      "laboratorio": "Laboratory",
+      "auditorio": "Auditorium",
+      "taller": "Workshop",
+      "sala_reuniones": "Meeting Room"
+    }
+  },
+  "map": {
+    "title": "Campus Map",
+    "showAvailability": "Show Availability",
+    "nextClass": "Next Class",
+    "viewSchedule": "View Full Schedule"
+  },
+  "requests": {
+    "title": "Room Requests",
+    "create": "New Request",
+    "requester": "Requester",
+    "reason": "Reason",
+    "preferredRoom": "Preferred Room",
+    "requiredCapacity": "Required Capacity",
+    "requiredEquipment": "Required Equipment",
+    "status": {
+      "pendiente": "Pending",
+      "aprobada": "Approved",
+      "rechazada": "Rejected",
+      "auto_aprobada": "Auto-Approved"
+    }
+  },
+  "observations": {
+    "title": "Observations and Tickets",
+    "create": "Report Observation",
+    "scanQR": "Scan QR",
+    "location": "Location",
+    "category": "Category",
+    "description": "Description",
+    "priority": "Priority",
+    "assignedTo": "Assigned to",
+    "categories": {
+      "mantenimiento": "Maintenance",
+      "limpieza": "Cleaning",
+      "equipamiento": "Equipment",
+      "ruido": "Noise",
+      "seguridad": "Security",
+      "otro": "Other"
+    },
+    "status": {
+      "nuevo": "New",
+      "revision": "Under Review",
+      "en_proceso": "In Progress",
+      "resuelto": "Resolved",
+      "cerrado": "Closed"
+    },
+    "priorities": {
+      "baja": "Low",
+      "media": "Medium",
+      "alta": "High",
+      "urgente": "Urgent"
+    }
+  },
+  "reports": {
+    "title": "Reports and Statistics",
+    "roomUsage": "Room Usage",
+    "occupancy": "Occupancy",
+    "teacherLoad": "Teacher Workload",
+    "exportPDF": "Export PDF",
+    "exportExcel": "Export Excel"
+  },
+  "settings": {
+    "title": "Settings",
+    "careers": "Careers",
+    "levels": "Levels",
+    "subjects": "Subjects",
+    "teachers": "Teachers",
+    "blocks": "Time Blocks",
+    "seasons": "Seasons",
+    "holidays": "Holidays"
+  },
+  "days": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
+  }
+}
