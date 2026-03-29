@@ -22,9 +22,10 @@ function handleGet($pdo) {
 
     foreach ($salas as &$sala) {
         $sala['mobiliario'] = json_decode($sala['mobiliario'] ?? '[]');
+        $sala['tipo_mobiliario'] = $sala['tipo_mobiliario'] ?? null;
         $sala['equipamiento'] = json_decode($sala['equipamiento'] ?? '[]');
         $sala['fotos'] = json_decode($sala['fotos'] ?? '[]');
-        
+
         $sala['piso'] = (int)$sala['piso'];
         $sala['capacidad'] = (int)$sala['capacidad'];
         $sala['lat'] = (float)$sala['lat'];
@@ -84,12 +85,12 @@ function createSala($pdo, $input) {
 
     $id = generateUUID();
     $sql = "INSERT INTO salas (
-        id, code, name, edificio_id, piso, tipo, 
-        capacidad, mobiliario, equipamiento, reglas, 
+        id, code, name, edificio_id, piso, tipo,
+        capacidad, mobiliario, tipo_mobiliario, equipamiento, reglas,
         lat, lng, tipo_gestion, gestion_carrera_id, gestion_unidad_id, fotos, activo
     ) VALUES (
-        :id, :code, :name, :edificio_id, :piso, :tipo, 
-        :capacidad, :mobiliario, :equipamiento, :reglas, 
+        :id, :code, :name, :edificio_id, :piso, :tipo,
+        :capacidad, :mobiliario, :tipo_mobiliario, :equipamiento, :reglas,
         :lat, :lng, :tipo_gestion, :gestion_carrera_id, :gestion_unidad_id, :fotos, :activo
     )";
 
@@ -103,6 +104,7 @@ function createSala($pdo, $input) {
         'tipo' => $input['tipo'],
         'capacidad' => $input['capacidad'],
         'mobiliario' => json_encode($input['mobiliario'] ?? []),
+        'tipo_mobiliario' => $input['tipo_mobiliario'] ?? null,
         'equipamiento' => json_encode($input['equipamiento'] ?? []),
         'reglas' => $input['reglas'] ?? null,
         'lat' => $input['lat'] ?? 0,
@@ -123,8 +125,8 @@ function updateSala($pdo, $id, $input) {
     $params = ['id' => $id];
 
     $allowed = [
-        'code', 'name', 'edificio_id', 'piso', 'tipo', 'capacidad', 
-        'mobiliario', 'equipamiento', 'reglas', 'lat', 'lng', 
+        'code', 'name', 'edificio_id', 'piso', 'tipo', 'capacidad',
+        'mobiliario', 'tipo_mobiliario', 'equipamiento', 'reglas', 'lat', 'lng',
         'fotos', 'activo', 'tipo_gestion', 'gestion_carrera_id', 'gestion_unidad_id'
     ];
 
@@ -153,6 +155,7 @@ function updateSala($pdo, $id, $input) {
 
     if ($sala) {
         $sala['mobiliario'] = json_decode($sala['mobiliario'] ?? '[]');
+        $sala['tipo_mobiliario'] = $sala['tipo_mobiliario'] ?? null;
         $sala['equipamiento'] = json_decode($sala['equipamiento'] ?? '[]');
         $sala['fotos'] = json_decode($sala['fotos'] ?? '[]');
         $sala['piso'] = (int)$sala['piso'];

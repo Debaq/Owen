@@ -26,6 +26,7 @@ export interface RoomFormData {
   tipo: Sala['tipo']
   capacidad: number
   mobiliario: string[]
+  tipo_mobiliario?: 'sillas_individuales' | 'butacas' | 'mesas_sillas' | 'mesas_trabajo' | 'computadores' | 'mixto' | null
   equipamiento: string[]
   reglas: string
   lat: number

@@ -1,26 +1,24 @@
--- SQLite Schema for Sistema Owen - Versión Final 2.8
+-- SQLite Schema for Sistema Owen - Versión 3.0
+-- Orden de tablas optimizado para respetar dependencias FK
 
--- Enable foreign keys support
 PRAGMA foreign_keys = ON;
 
--- -----------------------------------------------------
--- Table users
--- -----------------------------------------------------
+-- =====================================================
+-- TABLAS BASE (sin dependencias)
+-- =====================================================
+
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('gestor', 'direccion')),
+  role TEXT NOT NULL CHECK(role IN ('gestor', 'direccion', 'secretaria')),
   name TEXT NOT NULL,
-  carrera_id TEXT,
+  carrera_id TEXT, -- FK declarada abajo tras crear carreras (circular)
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- -----------------------------------------------------
--- Table sistemas_bloques
--- -----------------------------------------------------
 DROP TABLE IF EXISTS sistemas_bloques;
 CREATE TABLE sistemas_bloques (
   id TEXT PRIMARY KEY,
@@ -29,9 +27,6 @@ CREATE TABLE sistemas_bloques (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- -----------------------------------------------------
--- Table unidades_academicas
--- -----------------------------------------------------
 DROP TABLE IF EXISTS unidades_academicas;
 CREATE TABLE unidades_academicas (
   id TEXT PRIMARY KEY,
@@ -40,63 +35,63 @@ CREATE TABLE unidades_academicas (
   tipo TEXT NOT NULL CHECK(tipo IN ('centro', 'instituto', 'vicerrectoria', 'unidad', 'otro')),
   encargado_id TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (encargado_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- -----------------------------------------------------
--- Table carreras
--- -----------------------------------------------------
-DROP TABLE IF EXISTS carreras;
-CREATE TABLE carreras (
+DROP TABLE IF EXISTS edificios;
+CREATE TABLE edificios (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   code TEXT NOT NULL UNIQUE,
-  director_id TEXT,
-  gestor_id TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (director_id) REFERENCES docentes(id) ON DELETE SET NULL,
-  FOREIGN KEY (gestor_id) REFERENCES users(id) ON DELETE SET NULL
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  pisos INTEGER NOT NULL DEFAULT 1,
+  descripcion TEXT,
+  fotos TEXT, -- JSON Array of URLs
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- -----------------------------------------------------
--- Table niveles
--- -----------------------------------------------------
-DROP TABLE IF EXISTS niveles;
-CREATE TABLE niveles (
+DROP TABLE IF EXISTS temporadas;
+CREATE TABLE temporadas (
   id TEXT PRIMARY KEY,
-  carrera_id TEXT NOT NULL,
   nombre TEXT NOT NULL,
-  orden INTEGER NOT NULL,
-  semestre TEXT NOT NULL DEFAULT 'impar' CHECK(semestre IN ('par', 'impar', 'anual')),
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE
+  tipo TEXT NOT NULL CHECK(tipo IN ('par', 'impar')),
+  año INTEGER NOT NULL,
+  fecha_inicio TEXT NOT NULL,
+  fecha_fin TEXT NOT NULL,
+  activa INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- -----------------------------------------------------
--- Table asignaturas
--- -----------------------------------------------------
-DROP TABLE IF EXISTS asignaturas;
-CREATE TABLE asignaturas (
+DROP TABLE IF EXISTS feriados;
+CREATE TABLE feriados (
   id TEXT PRIMARY KEY,
-  code TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  carrera_id TEXT NOT NULL,
-  nivel_id TEXT NOT NULL,
-  horas_teoria INTEGER NOT NULL DEFAULT 0,
-  horas_practica INTEGER NOT NULL DEFAULT 0,
-  horas_autonomas INTEGER NOT NULL DEFAULT 0,
-  horas_semanales INTEGER NOT NULL DEFAULT 0, -- Total presencial (T+P)
-  creditos INTEGER NOT NULL DEFAULT 0,
-  duracion_semanas INTEGER NOT NULL DEFAULT 17, -- Semestre estándar
-  semana_inicio INTEGER NOT NULL DEFAULT 1,     -- Semana en que parte
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE,
-  FOREIGN KEY (nivel_id) REFERENCES niveles(id) ON DELETE CASCADE
+  fecha TEXT NOT NULL,
+  nombre TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK(tipo IN ('nacional', 'regional', 'institucional')),
+  recurrente_anual INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- -----------------------------------------------------
--- Table docentes
--- -----------------------------------------------------
+DROP TABLE IF EXISTS bloques_horarios;
+CREATE TABLE bloques_horarios (
+  id TEXT PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  hora_inicio TEXT NOT NULL,
+  hora_fin TEXT NOT NULL,
+  dia_semana INTEGER NOT NULL DEFAULT 1 CHECK(dia_semana BETWEEN 1 AND 6),
+  orden INTEGER NOT NULL DEFAULT 0,
+  sistema_bloque_id TEXT NOT NULL,
+  activo INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sistema_bloque_id) REFERENCES sistemas_bloques(id) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- TABLAS ACADÉMICAS
+-- =====================================================
+
 DROP TABLE IF EXISTS docentes;
 CREATE TABLE docentes (
   id TEXT PRIMARY KEY,
@@ -113,22 +108,58 @@ CREATE TABLE docentes (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- -----------------------------------------------------
--- Table docente_disponibilidad
--- -----------------------------------------------------
+DROP TABLE IF EXISTS carreras;
+CREATE TABLE carreras (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  director_id TEXT,
+  gestor_id TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (director_id) REFERENCES docentes(id) ON DELETE SET NULL,
+  FOREIGN KEY (gestor_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+DROP TABLE IF EXISTS niveles;
+CREATE TABLE niveles (
+  id TEXT PRIMARY KEY,
+  carrera_id TEXT NOT NULL,
+  nombre TEXT NOT NULL,
+  orden INTEGER NOT NULL,
+  semestre TEXT NOT NULL DEFAULT 'impar' CHECK(semestre IN ('par', 'impar', 'anual')),
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE
+);
+
+DROP TABLE IF EXISTS asignaturas;
+CREATE TABLE asignaturas (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  carrera_id TEXT NOT NULL,
+  nivel_id TEXT NOT NULL,
+  horas_teoria INTEGER NOT NULL DEFAULT 0,
+  horas_practica INTEGER NOT NULL DEFAULT 0,
+  horas_autonomas INTEGER NOT NULL DEFAULT 0,
+  horas_semanales INTEGER NOT NULL DEFAULT 0,
+  creditos INTEGER NOT NULL DEFAULT 0,
+  duracion_semanas INTEGER NOT NULL DEFAULT 17,
+  semana_inicio INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE,
+  FOREIGN KEY (nivel_id) REFERENCES niveles(id) ON DELETE CASCADE
+);
+
 DROP TABLE IF EXISTS docente_disponibilidad;
 CREATE TABLE docente_disponibilidad (
   id TEXT PRIMARY KEY,
   docente_id TEXT NOT NULL,
-  dia_semana INTEGER NOT NULL,
+  dia_semana INTEGER NOT NULL CHECK(dia_semana BETWEEN 1 AND 6),
   bloque_id TEXT NOT NULL,
   FOREIGN KEY (docente_id) REFERENCES docentes(id) ON DELETE CASCADE,
   FOREIGN KEY (bloque_id) REFERENCES bloques_horarios(id) ON DELETE CASCADE
 );
 
--- -----------------------------------------------------
--- Table docente_asignaturas
--- -----------------------------------------------------
 DROP TABLE IF EXISTS docente_asignaturas;
 CREATE TABLE docente_asignaturas (
   id TEXT PRIMARY KEY,
@@ -141,25 +172,10 @@ CREATE TABLE docente_asignaturas (
   UNIQUE(docente_id, asignatura_id)
 );
 
--- -----------------------------------------------------
--- Table edificios
--- -----------------------------------------------------
-DROP TABLE IF EXISTS edificios;
-CREATE TABLE edificios (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  lat REAL NOT NULL,
-  lng REAL NOT NULL,
-  pisos INTEGER NOT NULL DEFAULT 1,
-  descripcion TEXT,
-  fotos TEXT, -- JSON Array of URLs
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
+-- =====================================================
+-- TABLAS INFRAESTRUCTURA
+-- =====================================================
 
--- -----------------------------------------------------
--- Table salas
--- -----------------------------------------------------
 DROP TABLE IF EXISTS salas;
 CREATE TABLE salas (
   id TEXT PRIMARY KEY,
@@ -170,12 +186,13 @@ CREATE TABLE salas (
   tipo TEXT NOT NULL CHECK(tipo IN ('aula', 'laboratorio', 'auditorio', 'taller', 'sala_reuniones', 'oficina', 'biblioteca', 'medioteca')),
   capacidad INTEGER NOT NULL,
   mobiliario TEXT, -- JSON Array
+  tipo_mobiliario TEXT DEFAULT NULL CHECK(tipo_mobiliario IN ('sillas_individuales', 'butacas', 'mesas_sillas', 'mesas_trabajo', 'computadores', 'mixto')),
   equipamiento TEXT, -- JSON Array
   reglas TEXT,
   lat REAL,
   lng REAL,
   tipo_gestion TEXT DEFAULT 'central' CHECK(tipo_gestion IN ('central', 'carrera', 'unidad')),
-  gestion_carrera_id TEXT, 
+  gestion_carrera_id TEXT,
   gestion_unidad_id TEXT,
   fotos TEXT, -- JSON Array of URLs
   activo INTEGER DEFAULT 1,
@@ -185,9 +202,6 @@ CREATE TABLE salas (
   FOREIGN KEY (gestion_unidad_id) REFERENCES unidades_academicas(id) ON DELETE SET NULL
 );
 
--- -----------------------------------------------------
--- Table areas_comunes
--- -----------------------------------------------------
 DROP TABLE IF EXISTS areas_comunes;
 CREATE TABLE areas_comunes (
   id TEXT PRIMARY KEY,
@@ -202,54 +216,10 @@ CREATE TABLE areas_comunes (
   FOREIGN KEY (edificio_id) REFERENCES edificios(id) ON DELETE CASCADE
 );
 
--- -----------------------------------------------------
--- Table temporadas
--- -----------------------------------------------------
-DROP TABLE IF EXISTS temporadas;
-CREATE TABLE temporadas (
-  id TEXT PRIMARY KEY,
-  nombre TEXT NOT NULL,
-  tipo TEXT NOT NULL CHECK(tipo IN ('par', 'impar')),
-  año INTEGER NOT NULL,
-  fecha_inicio TEXT NOT NULL,
-  fecha_fin TEXT NOT NULL,
-  activa INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
+-- =====================================================
+-- TABLA CENTRAL: HORARIOS
+-- =====================================================
 
--- -----------------------------------------------------
--- Table bloques_horarios
--- -----------------------------------------------------
-DROP TABLE IF EXISTS bloques_horarios;
-CREATE TABLE bloques_horarios (
-  id TEXT PRIMARY KEY,
-  nombre TEXT NOT NULL,
-  hora_inicio TEXT NOT NULL,
-  hora_fin TEXT NOT NULL,
-  dia_semana INTEGER NOT NULL DEFAULT 1,
-  orden INTEGER NOT NULL DEFAULT 0,
-  sistema_bloque_id TEXT NOT NULL,
-  activo INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (sistema_bloque_id) REFERENCES sistemas_bloques(id) ON DELETE CASCADE
-);
-
--- -----------------------------------------------------
--- Table feriados
--- -----------------------------------------------------
-DROP TABLE IF EXISTS feriados;
-CREATE TABLE feriados (
-  id TEXT PRIMARY KEY,
-  fecha TEXT NOT NULL,
-  nombre TEXT NOT NULL,
-  tipo TEXT NOT NULL CHECK(tipo IN ('nacional', 'regional', 'institucional')),
-  recurrente_anual INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- -----------------------------------------------------
--- Table horarios
--- -----------------------------------------------------
 DROP TABLE IF EXISTS horarios;
 CREATE TABLE horarios (
   id TEXT PRIMARY KEY,
@@ -260,7 +230,7 @@ CREATE TABLE horarios (
   nivel_id TEXT,
   bloque_id TEXT NOT NULL,
   temporada_id TEXT NOT NULL,
-  dia_semana INTEGER NOT NULL, -- 0=domingo, 1=lunes, ...
+  dia_semana INTEGER NOT NULL CHECK(dia_semana BETWEEN 1 AND 6),
   recurrencia TEXT NOT NULL CHECK(recurrencia IN ('semanal', 'quincenal', 'mensual', 'unica', 'anual')),
   fecha_inicio TEXT NOT NULL,
   fecha_fin TEXT NOT NULL,
@@ -279,9 +249,10 @@ CREATE TABLE horarios (
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
 );
 
--- -----------------------------------------------------
--- Table solicitudes
--- -----------------------------------------------------
+-- =====================================================
+-- TABLAS DE SOLICITUDES Y OBSERVACIONES
+-- =====================================================
+
 DROP TABLE IF EXISTS solicitudes;
 CREATE TABLE solicitudes (
   id TEXT PRIMARY KEY,
@@ -291,7 +262,8 @@ CREATE TABLE solicitudes (
   motivo TEXT NOT NULL,
   asignatura_code TEXT,
   sala_preferida_id TEXT,
-  tipo_sala TEXT CHECK(tipo_sala IN ('aula', 'laboratorio', 'auditorio', 'taller')),
+  tipo_sala TEXT CHECK(tipo_sala IN ('aula', 'laboratorio', 'auditorio', 'taller', 'sala_reuniones')),
+  mobiliario_requerido TEXT DEFAULT NULL CHECK(mobiliario_requerido IN ('sillas_individuales', 'butacas', 'mesas_sillas', 'mesas_trabajo', 'computadores', 'mixto')),
   capacidad_requerida INTEGER,
   equipamiento_requerido TEXT, -- JSON Array
   fecha_inicio TEXT NOT NULL,
@@ -314,68 +286,6 @@ CREATE TABLE solicitudes (
   FOREIGN KEY (revisado_por) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- -----------------------------------------------------
--- Table pois
--- -----------------------------------------------------
-DROP TABLE IF EXISTS pois;
-CREATE TABLE pois (
-  id TEXT PRIMARY KEY,
-  category TEXT NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT,
-  lat REAL NOT NULL,
-  lng REAL NOT NULL,
-  icon TEXT,
-  color TEXT,
-  edificio_id TEXT,
-  activo INTEGER DEFAULT 1,
-  metadata TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (edificio_id) REFERENCES edificios(id) ON DELETE SET NULL
-);
-
--- -----------------------------------------------------
--- Table map_areas
--- -----------------------------------------------------
-DROP TABLE IF EXISTS map_areas;
-CREATE TABLE map_areas (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  type TEXT NOT NULL,
-  coordinates TEXT NOT NULL, -- JSON Array of [lat, lng] points
-  color TEXT NOT NULL DEFAULT '#3388ff',
-  fill_opacity REAL DEFAULT 0.3,
-  activo INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- -----------------------------------------------------
--- Table routes
--- -----------------------------------------------------
-DROP TABLE IF EXISTS routes;
-CREATE TABLE routes (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  from_poi_id TEXT,
-  to_poi_id TEXT,
-  points TEXT NOT NULL, -- JSON Array of [lat, lng] points
-  type TEXT NOT NULL DEFAULT 'walking',
-  color TEXT NOT NULL DEFAULT '#3388ff',
-  width INTEGER DEFAULT 3,
-  activo INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (from_poi_id) REFERENCES pois(id) ON DELETE SET NULL,
-  FOREIGN KEY (to_poi_id) REFERENCES pois(id) ON DELETE SET NULL
-);
-
--- -----------------------------------------------------
--- Table observaciones
--- -----------------------------------------------------
 DROP TABLE IF EXISTS observaciones;
 CREATE TABLE observaciones (
   id TEXT PRIMARY KEY,
@@ -394,12 +304,144 @@ CREATE TABLE observaciones (
   FOREIGN KEY (revisado_por) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- -----------------------------------------------------
--- Table system_config
--- -----------------------------------------------------
+-- =====================================================
+-- TABLAS DE MAPA
+-- =====================================================
+
+DROP TABLE IF EXISTS pois;
+CREATE TABLE pois (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  icon TEXT,
+  color TEXT,
+  edificio_id TEXT,
+  activo INTEGER DEFAULT 1,
+  metadata TEXT, -- JSON
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (edificio_id) REFERENCES edificios(id) ON DELETE SET NULL
+);
+
+DROP TABLE IF EXISTS map_areas;
+CREATE TABLE map_areas (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  type TEXT NOT NULL,
+  coordinates TEXT NOT NULL, -- JSON Array of [lat, lng]
+  color TEXT NOT NULL DEFAULT '#3388ff',
+  fill_opacity REAL DEFAULT 0.3,
+  activo INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS routes;
+CREATE TABLE routes (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  from_poi_id TEXT,
+  to_poi_id TEXT,
+  points TEXT NOT NULL, -- JSON Array of [lat, lng]
+  type TEXT NOT NULL DEFAULT 'walking',
+  color TEXT NOT NULL DEFAULT '#3388ff',
+  width INTEGER DEFAULT 3,
+  activo INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (from_poi_id) REFERENCES pois(id) ON DELETE SET NULL,
+  FOREIGN KEY (to_poi_id) REFERENCES pois(id) ON DELETE SET NULL
+);
+
+-- =====================================================
+-- TABLAS DE AGENDA
+-- =====================================================
+
+DROP TABLE IF EXISTS agenda_disponibilidad;
+CREATE TABLE agenda_disponibilidad (
+  id TEXT PRIMARY KEY,
+  director_id TEXT NOT NULL,
+  dia_semana INTEGER NOT NULL CHECK(dia_semana BETWEEN 1 AND 6),
+  hora_inicio TEXT NOT NULL,
+  hora_fin TEXT NOT NULL,
+  duracion_cita INTEGER DEFAULT 30,
+  activo INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (director_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+DROP TABLE IF EXISTS agenda_citas;
+CREATE TABLE agenda_citas (
+  id TEXT PRIMARY KEY,
+  director_id TEXT NOT NULL,
+  fecha TEXT NOT NULL,
+  hora_inicio TEXT NOT NULL,
+  hora_fin TEXT NOT NULL,
+  nombre_solicitante TEXT NOT NULL,
+  email_solicitante TEXT,
+  telefono_solicitante TEXT,
+  motivo TEXT NOT NULL,
+  estado TEXT DEFAULT 'confirmada' CHECK(estado IN ('confirmada', 'cancelada')),
+  creado_por TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (director_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (creado_por) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- =====================================================
+-- TABLAS DE CONFIGURACIÓN
+-- =====================================================
+
 DROP TABLE IF EXISTS system_config;
 CREATE TABLE system_config (
   key TEXT PRIMARY KEY,
   value TEXT,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =====================================================
+-- ÍNDICES
+-- =====================================================
+
+-- Horarios: detección de conflictos (consulta más crítica)
+CREATE INDEX IF NOT EXISTS idx_horarios_conflictos ON horarios(sala_id, dia_semana, bloque_id, temporada_id, activo);
+CREATE INDEX IF NOT EXISTS idx_horarios_docente ON horarios(docente_id, dia_semana, bloque_id, temporada_id, activo);
+CREATE INDEX IF NOT EXISTS idx_horarios_nivel ON horarios(nivel_id, dia_semana, bloque_id, temporada_id, activo);
+CREATE INDEX IF NOT EXISTS idx_horarios_asignatura ON horarios(asignatura_id);
+CREATE INDEX IF NOT EXISTS idx_horarios_temporada ON horarios(temporada_id);
+
+-- Académicos
+CREATE INDEX IF NOT EXISTS idx_niveles_carrera ON niveles(carrera_id);
+CREATE INDEX IF NOT EXISTS idx_asignaturas_nivel ON asignaturas(nivel_id);
+CREATE INDEX IF NOT EXISTS idx_asignaturas_carrera ON asignaturas(carrera_id);
+CREATE INDEX IF NOT EXISTS idx_docente_disp_docente ON docente_disponibilidad(docente_id);
+CREATE INDEX IF NOT EXISTS idx_docente_asig_docente ON docente_asignaturas(docente_id);
+CREATE INDEX IF NOT EXISTS idx_docente_asig_asignatura ON docente_asignaturas(asignatura_id);
+
+-- Infraestructura
+CREATE INDEX IF NOT EXISTS idx_salas_edificio ON salas(edificio_id);
+CREATE INDEX IF NOT EXISTS idx_salas_activo ON salas(activo);
+CREATE INDEX IF NOT EXISTS idx_bloques_sistema ON bloques_horarios(sistema_bloque_id);
+
+-- Solicitudes
+CREATE INDEX IF NOT EXISTS idx_solicitudes_usuario ON solicitudes(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_estado ON solicitudes(estado);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_carrera ON solicitudes(carrera_id);
+
+-- Observaciones
+CREATE INDEX IF NOT EXISTS idx_observaciones_sala ON observaciones(sala_id);
+CREATE INDEX IF NOT EXISTS idx_observaciones_estado ON observaciones(estado);
+
+-- Mapa
+CREATE INDEX IF NOT EXISTS idx_pois_edificio ON pois(edificio_id);
+CREATE INDEX IF NOT EXISTS idx_pois_category ON pois(category);
+
+-- Agenda
+CREATE INDEX IF NOT EXISTS idx_agenda_disp_director ON agenda_disponibilidad(director_id);
+CREATE INDEX IF NOT EXISTS idx_agenda_citas_director ON agenda_citas(director_id, fecha);
+CREATE INDEX IF NOT EXISTS idx_agenda_citas_fecha ON agenda_citas(fecha, estado);

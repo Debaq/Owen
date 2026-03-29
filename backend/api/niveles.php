@@ -58,11 +58,15 @@ function handleGet($pdo) {
 
 function handleCreate($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $input = getJsonInput();
-    
+
     if (empty($input['carrera_id']) || empty($input['nombre']) || !isset($input['orden'])) {
         jsonResponse(['error' => 'Missing required fields'], 400);
+    }
+
+    if (!isOwnCarrera($pdo, $input['carrera_id'])) {
+        jsonResponse(['error' => 'Solo puede gestionar niveles de su carrera'], 403);
     }
 
     $id = generateUUID();
@@ -87,7 +91,7 @@ function handleCreate($pdo) {
 
 function handleMassCreate($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $input = getJsonInput();
     $carrera_id = $input['carrera_id'] ?? null;
     $niveles = $input['niveles'] ?? [];
@@ -122,7 +126,7 @@ function handleMassCreate($pdo) {
 
 function handleUpdate($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $id = $_GET['id'] ?? null;
     if (!$id) jsonResponse(['error' => 'ID required'], 400);
     
@@ -153,7 +157,7 @@ function handleUpdate($pdo) {
 
 function handleDelete($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $id = $_GET['id'] ?? null;
     if (!$id) jsonResponse(['error' => 'ID required'], 400);
     

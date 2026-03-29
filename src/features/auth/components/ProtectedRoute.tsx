@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'gestor' | 'direccion'
+  requiredRole?: string | string[]
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -27,7 +27,12 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   // Check role requirement if specified
-  if (requiredRole && user?.role !== requiredRole) {
+  const hasRole = !requiredRole || (
+    Array.isArray(requiredRole)
+      ? requiredRole.includes(user?.role || '')
+      : user?.role === requiredRole
+  )
+  if (!hasRole) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center p-6 bg-red-50 rounded-lg max-w-md">

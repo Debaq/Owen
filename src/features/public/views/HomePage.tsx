@@ -15,6 +15,7 @@ import {
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { ApiResponse } from '@/shared/types'
+import { getPublicConfig, type SystemConfig } from '@/features/settings/services/settingsService'
 import { Building2, Users, MapPin, Search, Loader2, GraduationCap } from 'lucide-react'
 
 interface RoomResult {
@@ -58,6 +59,7 @@ type SearchTab = 'salas' | 'carrera'
 export function HomePage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<SearchTab>('salas')
+  const [siteConfig, setSiteConfig] = useState<SystemConfig>({})
 
   // Busqueda por sala
   const [searchQuery, setSearchQuery] = useState('')
@@ -74,11 +76,12 @@ export function HomePage() {
   const [searchingCarrera, setSearchingCarrera] = useState(false)
   const [searchedCarrera, setSearchedCarrera] = useState(false)
 
-  // Cargar carreras al montar
+  // Cargar carreras y config al montar
   useEffect(() => {
     api.get<ApiResponse<Carrera[]>>('/public.php?action=carreras')
       .then(res => setCarreras(res.data.data || []))
       .catch(() => {})
+    getPublicConfig().then(setSiteConfig).catch(() => {})
   }, [])
 
   // Cargar niveles cuando cambia la carrera
@@ -192,8 +195,8 @@ export function HomePage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Sistema OWEN</h1>
-              <p className="text-sm text-gray-600">Sistema de Horarios - Campus Puerto Montt</p>
+              <h1 className="text-2xl font-bold text-gray-900">{siteConfig.site_name || 'Sistema OWEN'}</h1>
+              <p className="text-sm text-gray-600">{siteConfig.site_subtitle || 'Sistema de Horarios'}</p>
             </div>
             <Button onClick={() => navigate('/login')} variant="outline">
               Iniciar Sesion
@@ -321,6 +324,22 @@ export function HomePage() {
           )}
         </Card>
 
+        {/* Guía del Campus */}
+        <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-blue-900">Lugares de Interés</h2>
+              <p className="text-sm text-blue-700 mt-1">
+                Encuentra secretarías, casinos, bibliotecas, estacionamientos y más
+              </p>
+            </div>
+            <Button onClick={() => navigate('/campus')} className="bg-blue-600 hover:bg-blue-700">
+              <MapPin className="h-4 w-4 mr-2" />
+              Explorar Campus
+            </Button>
+          </div>
+        </Card>
+
         {/* Mapa del Campus */}
         <Card className="p-6">
           <div className="mb-4">
@@ -336,7 +355,7 @@ export function HomePage() {
       {/* Footer */}
       <footer className="bg-white border-t mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-600">
-          <p>Sistema OWEN - Campus Puerto Montt, Chile</p>
+          <p>{siteConfig.site_footer || 'Sistema OWEN'}</p>
           <p className="mt-1">
             <a href="/report" className="text-blue-600 hover:underline">Reportar observacion</a>
           </p>

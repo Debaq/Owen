@@ -29,6 +29,9 @@ $defaults = [
     'public_help_requests_enabled' => '1',
     'public_comments_enabled' => '1',
     'public_navigation_enabled' => '1',
+    'site_name' => 'Sistema OWEN',
+    'site_subtitle' => 'Sistema de Horarios - Sede Puerto Montt',
+    'site_footer' => 'Sistema OWEN - Sede Puerto Montt, Chile',
 ];
 
 // Insertar defaults si no existen
@@ -51,6 +54,28 @@ switch ($method) {
 }
 
 function handleGet($pdo) {
+    // Acceso publico a todas las keys de sitio
+    if (isset($_GET['public']) && !isset($_GET['key'])) {
+        $publicKeys = [
+            'public_building_view_enabled',
+            'public_help_requests_enabled',
+            'public_comments_enabled',
+            'public_navigation_enabled',
+            'site_name',
+            'site_subtitle',
+            'site_footer',
+        ];
+        $placeholders = implode(',', array_fill(0, count($publicKeys), '?'));
+        $stmt = $pdo->prepare("SELECT key, value FROM system_config WHERE key IN ($placeholders)");
+        $stmt->execute($publicKeys);
+        $config = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $config[$row['key']] = $row['value'];
+        }
+        jsonResponse(['success' => true, 'data' => $config]);
+        return;
+    }
+
     // Acceso publico a una key especifica
     if (isset($_GET['public']) && isset($_GET['key'])) {
         $key = $_GET['key'];
@@ -60,6 +85,9 @@ function handleGet($pdo) {
             'public_help_requests_enabled',
             'public_comments_enabled',
             'public_navigation_enabled',
+            'site_name',
+            'site_subtitle',
+            'site_footer',
         ];
         if (!in_array($key, $publicKeys)) {
             jsonResponse(['error' => 'Key not accessible'], 403);

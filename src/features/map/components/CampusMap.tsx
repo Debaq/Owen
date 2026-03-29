@@ -9,8 +9,19 @@ import { RoutePolyline } from './RoutePolyline';
 import { AreaPolygon } from './AreaPolygon';
 import { LayerControl, type LayerVisibility } from './LayerControl';
 import { MapControls } from './MapControls';
+import { POIForm } from './POIForm';
 import { useMapData } from '../hooks/useMapData';
-import { POI_CATEGORIES_CONFIG } from '../types';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { deletePOI } from '../services/mapService';
+import { POI_CATEGORIES_CONFIG, type POI } from '../types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/shared/components/ui/dialog';
+import { toast } from 'sonner';
 
 // Fix para los iconos de Leaflet en Vite
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -36,6 +47,33 @@ interface CampusMapProps {
 
 export function CampusMap({ className = '', height = '600px' }: CampusMapProps) {
   const { pois, routes, areas, edificios, salas, loading, error, reload } = useMapData();
+  const { user } = useAuth();
+  const canEdit = user?.role === 'gestor';
+
+  const [editingPOI, setEditingPOI] = useState<POI | undefined>();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEditPOI = (poi: POI) => {
+    setEditingPOI(poi);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeletePOI = async (poi: POI) => {
+    if (!confirm(`¿Eliminar "${poi.name}"?`)) return;
+    try {
+      await deletePOI(poi.id);
+      toast.success('Punto de interés eliminado');
+      reload();
+    } catch {
+      toast.error('Error al eliminar');
+    }
+  };
+
+  const handleEditSuccess = () => {
+    setEditDialogOpen(false);
+    setEditingPOI(undefined);
+    reload();
+  };
 
   const [visibility, setVisibility] = useState<LayerVisibility>({
     buildings: true,
@@ -115,7 +153,13 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
 
         {/* Puntos de Interés */}
         {visiblePOIs.map(poi => (
-          <POIMarker key={poi.id} poi={poi} />
+          <POIMarker
+            key={poi.id}
+            poi={poi}
+            canEdit={canEdit}
+            onEdit={handleEditPOI}
+            onDelete={handleDeletePOI}
+          />
         ))}
       </MapContainer>
 
@@ -139,6 +183,25 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
           </div>
         </div>
       )}
+
+      {/* Dialog de edición de POI */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Punto de Interés</DialogTitle>
+            <DialogDescription>
+              Modifica la información del punto de interés.
+            </DialogDescription>
+          </DialogHeader>
+          {editingPOI && (
+            <POIForm
+              poi={editingPOI}
+              onSuccess={handleEditSuccess}
+              onCancel={() => setEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

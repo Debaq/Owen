@@ -33,8 +33,7 @@ function handleGet($pdo) {
 }
 
 function handleSave($pdo) {
-    requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $input = getJsonInput();
     $docente_id = $input['docente_id'] ?? null;
     $items = $input['items'] ?? []; // Array of {dia_semana, bloque_id}

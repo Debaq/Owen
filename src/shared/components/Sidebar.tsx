@@ -14,13 +14,16 @@ import {
   Settings,
   GraduationCap,
   Users,
+  CalendarClock,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useAuth } from '@/features/auth/hooks/useAuth'
 
 interface NavigationItem {
   name: string
   href: string
   icon: React.ElementType
+  roles?: string[] // si no se define, visible para todos
 }
 
 interface NavigationSection {
@@ -33,13 +36,13 @@ const navigation: NavigationSection[] = [
     items: [
       { name: 'navigation.dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'navigation.schedules', href: '/admin/schedules', icon: Calendar },
-      { name: 'Asistente Horarios', href: '/admin/schedule-wizard', icon: CalendarPlus },
+      { name: 'Asistente Horarios', href: '/admin/schedule-wizard', icon: CalendarPlus, roles: ['gestor'] },
     ]
   },
   {
     title: 'Gestión Física',
     items: [
-      { name: 'navigation.buildings', href: '/admin/buildings', icon: Building },
+      { name: 'navigation.buildings', href: '/admin/buildings', icon: Building, roles: ['gestor'] },
       { name: 'navigation.rooms', href: '/admin/rooms', icon: DoorOpen },
       { name: 'navigation.map', href: '/admin/map', icon: Map },
     ]
@@ -48,18 +51,19 @@ const navigation: NavigationSection[] = [
     title: 'Gestión Académica',
     items: [
       { name: 'Carreras', href: '/admin/academic/carreras', icon: GraduationCap },
-      { name: 'Unidades', href: '/admin/academic/unidades', icon: Building2 },
+      { name: 'Unidades', href: '/admin/academic/unidades', icon: Building2, roles: ['gestor'] },
       { name: 'Docentes', href: '/admin/academic/docentes', icon: Users },
     ]
   },
   {
     title: 'Sistema',
     items: [
-      { name: 'Bloques Horarios', href: '/admin/system/bloques', icon: Calendar },
+      { name: 'Bloques Horarios', href: '/admin/system/bloques', icon: Calendar, roles: ['gestor'] },
       { name: 'navigation.requests', href: '/admin/requests', icon: FileText },
+      { name: 'Agenda', href: '/admin/agenda', icon: CalendarClock, roles: ['direccion', 'secretaria'] },
       { name: 'navigation.observations', href: '/admin/observations', icon: MessageSquare },
       { name: 'navigation.reports', href: '/admin/reports', icon: BarChart3 },
-      { name: 'navigation.settings', href: '/admin/settings', icon: Settings },
+      { name: 'navigation.settings', href: '/admin/settings', icon: Settings, roles: ['gestor'] },
     ]
   }
 ]
@@ -67,11 +71,19 @@ const navigation: NavigationSection[] = [
 export default function Sidebar() {
   const { t } = useTranslation()
   const location = useLocation()
+  const { user } = useAuth()
+  const userRole = user?.role || ''
 
   return (
     <aside className="w-20 md:w-64 bg-white shadow-sm border-r min-h-[calc(100vh-65px)] overflow-y-auto flex-shrink-0 transition-all duration-300">
       <nav className="p-2 md:p-4 space-y-6">
-        {navigation.map((section, index) => (
+        {navigation.map((section, index) => {
+          const visibleItems = section.items.filter(item =>
+            !item.roles || item.roles.includes(userRole)
+          )
+          if (visibleItems.length === 0) return null
+
+          return (
           <div key={index} className="space-y-2">
             {section.title && (
               <h3 className="hidden md:block px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -79,7 +91,7 @@ export default function Sidebar() {
               </h3>
             )}
             <div className="space-y-1">
-              {section.items.map((item) => {
+              {visibleItems.map((item) => {
                 const isActive = location.pathname.startsWith(item.href)
                 const Icon = item.icon
 
@@ -104,7 +116,8 @@ export default function Sidebar() {
               })}
             </div>
           </div>
-        ))}
+          )
+        })}
       </nav>
     </aside>
   )

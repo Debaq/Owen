@@ -21,7 +21,8 @@ const COMMON_ICONS = [
   '📍', '🅿️', '🚻', '📚', '☕', '🚪', '🚌', '🚲', '🏥', '🛡️',
   '📶', '🧯', '🚨', '🛗', '🪜', '🌳', '🏛️', '🏋️', '🎭',
   '🏧', '🍕', '🍔', '🥪', '🥤', '🛑', '⚠️', '♿', '🚰',
-  '🚮', '♻️', '📢', '🎓', '🔬', '💻', '🔋', '👁️', '💡', '🔧'
+  '🚮', '♻️', '📢', '🎓', '🔬', '💻', '🔋', '👁️', '💡', '🔧',
+  '📋', '🏫', '🍽️', '🛋️', '🖼️',
 ];
 
 interface POIFormProps {
@@ -41,11 +42,29 @@ export function POIForm({ poi, onSuccess, onCancel }: POIFormProps) {
   const [lat, setLat] = useState(poi?.lat || -41.48780);
   const [lng, setLng] = useState(poi?.lng || -72.89699);
   const [edificioId, setEdificioId] = useState<string | undefined>(poi?.edificio_id);
+  const [piso, setPiso] = useState<number | undefined>(poi?.metadata?.piso);
   const [edificios, setEdificios] = useState<Edificio[]>([]);
 
   useEffect(() => {
     getAllBuildings().then(setEdificios).catch(() => setEdificios([]));
   }, []);
+
+  const selectedEdificio = edificios.find(e => e.id === edificioId);
+
+  const handleEdificioChange = (value: string) => {
+    const newId = value === 'none' ? undefined : value;
+    setEdificioId(newId);
+    if (!newId) {
+      setPiso(undefined);
+    } else {
+      const edificio = edificios.find(e => e.id === newId);
+      if (edificio) {
+        setLat(edificio.lat);
+        setLng(edificio.lng);
+      }
+      setPiso(1);
+    }
+  };
 
   const handleCategoryChange = (value: POICategory) => {
     setCategory(value);
@@ -67,6 +86,13 @@ export function POIForm({ poi, onSuccess, onCancel }: POIFormProps) {
   const onSubmit = async (data: any) => {
     setLoading(true);
     try {
+      const metadata: Record<string, any> = { ...(poi?.metadata || {}) };
+      if (edificioId && piso !== undefined) {
+        metadata.piso = piso;
+      } else {
+        delete metadata.piso;
+      }
+
       const poiData: Partial<POI> = {
         ...data,
         category,
@@ -76,6 +102,7 @@ export function POIForm({ poi, onSuccess, onCancel }: POIFormProps) {
         icon: selectedIcon,
         color: categoryConfig?.color,
         activo: true,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       };
 
       if (isEdit) {
@@ -157,8 +184,8 @@ export function POIForm({ poi, onSuccess, onCancel }: POIFormProps) {
         <Label htmlFor="edificio">Edificio (opcional)</Label>
         <select
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          value={edificioId || 'none'} 
-          onChange={(e) => setEdificioId(e.target.value === 'none' ? undefined : e.target.value)}
+          value={edificioId || 'none'}
+          onChange={(e) => handleEdificioChange(e.target.value)}
         >
           <option value="none">Ninguno (ubicación exterior)</option>
           {edificios.map((edificio) => (
@@ -168,21 +195,42 @@ export function POIForm({ poi, onSuccess, onCancel }: POIFormProps) {
           ))}
         </select>
         <p className="text-xs text-gray-500 mt-1">
-          💡 Asociar a un edificio permite ver este POI en el popup del edificio
+          Asociar a un edificio permite ver este POI en el popup del edificio
         </p>
       </div>
 
-      <div>
-        <Label>Ubicación en el Mapa *</Label>
-        <MapLocationPicker
-          lat={lat}
-          lng={lng}
-          onLocationChange={(newLat, newLng) => {
-            setLat(newLat);
-            setLng(newLng);
-          }}
-        />
-      </div>
+      {selectedEdificio && (
+        <div>
+          <Label htmlFor="piso">Piso</Label>
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            value={piso ?? 1}
+            onChange={(e) => setPiso(parseInt(e.target.value))}
+          >
+            {Array.from({ length: selectedEdificio.pisos }, (_, i) => i + 1).map((p) => (
+              <option key={p} value={p}>Piso {p}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {selectedEdificio ? (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+          Ubicación tomada del edificio <strong>{selectedEdificio.name}</strong> — Piso {piso ?? 1}
+        </div>
+      ) : (
+        <div>
+          <Label>Ubicación en el Mapa *</Label>
+          <MapLocationPicker
+            lat={lat}
+            lng={lng}
+            onLocationChange={(newLat, newLng) => {
+              setLat(newLat);
+              setLng(newLng);
+            }}
+          />
+        </div>
+      )}
 
       <div className="flex gap-3 pt-4">
         <Button type="submit" disabled={loading} className="flex-1">

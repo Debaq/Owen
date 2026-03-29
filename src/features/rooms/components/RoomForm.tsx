@@ -29,6 +29,7 @@ const roomFormSchema = z.object({
   tipo: z.enum(['aula', 'laboratorio', 'auditorio', 'taller', 'sala_reuniones', 'oficina', 'biblioteca', 'medioteca']),
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0').max(1000, 'Máximo 1000 personas'),
   mobiliario: z.array(z.string()).default([]),
+  tipo_mobiliario: z.enum(['sillas_individuales', 'butacas', 'mesas_sillas', 'mesas_trabajo', 'computadores', 'mixto']).optional().nullable(),
   equipamiento: z.array(z.string()).default([]),
   fotos: z.array(z.string()).default([]),
   tipo_gestion: z.enum(['central', 'carrera', 'unidad']).default('central'),
@@ -81,6 +82,7 @@ export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }:
           tipo: 'aula',
           capacidad: 30,
           mobiliario: [],
+          tipo_mobiliario: null,
           equipamiento: [],
           fotos: [],
           tipo_gestion: 'central',
@@ -203,6 +205,27 @@ export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }:
         <div className="space-y-2">
           <Label htmlFor="capacidad">Capacidad *</Label>
           <Input id="capacidad" type="number" {...register('capacidad')} disabled={isLoading} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Tipo de Mobiliario</Label>
+          <Select
+            onValueChange={(val) => setValue('tipo_mobiliario', val === '_none' ? null : val as any)}
+            defaultValue={watch('tipo_mobiliario') || '_none'}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar mobiliario" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">Sin especificar</SelectItem>
+              <SelectItem value="sillas_individuales">Sillas Individuales</SelectItem>
+              <SelectItem value="butacas">Butacas</SelectItem>
+              <SelectItem value="mesas_sillas">Mesas con Sillas</SelectItem>
+              <SelectItem value="mesas_trabajo">Mesas de Trabajo</SelectItem>
+              <SelectItem value="computadores">Computadores</SelectItem>
+              <SelectItem value="mixto">Mixto</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

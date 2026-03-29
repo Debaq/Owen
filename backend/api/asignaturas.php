@@ -69,7 +69,7 @@ function castTypes(&$d) {
 
 function handleCreate($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $input = getJsonInput();
     
     $stmt = $pdo->prepare("SELECT id FROM asignaturas WHERE code = ?");
@@ -109,7 +109,7 @@ function handleCreate($pdo) {
 
 function handleUpdate($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $id = $_GET['id'] ?? null;
     if (!$id) jsonResponse(['error' => 'ID required'], 400);
     
@@ -151,7 +151,7 @@ function handleUpdate($pdo) {
 
 function handleDelete($pdo) {
     requireAuth();
-    requireRole('gestor');
+    requireRoles(['gestor', 'direccion', 'secretaria']);
     $id = $_GET['id'] ?? null;
     if (!$id) jsonResponse(['error' => 'ID required'], 400);
     

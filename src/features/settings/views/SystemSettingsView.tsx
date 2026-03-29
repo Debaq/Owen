@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import { getSystemConfig, type SystemConfig } from '../services/settingsService'
 import { NotificationSettings } from '../components/NotificationSettings'
 import { PublicAreaSettings } from '../components/PublicAreaSettings'
-import { Bell, Globe, Loader2 } from 'lucide-react'
+import { GeneralSettings } from '../components/GeneralSettings'
+import { Bell, Globe, Loader2, Settings } from 'lucide-react'
 
-type Tab = 'notifications' | 'public'
+type Tab = 'general' | 'notifications' | 'public'
 
 export function SystemSettingsView() {
   const [config, setConfig] = useState<SystemConfig>({})
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('notifications')
+  const [tab, setTab] = useState<Tab>('general')
 
   useEffect(() => {
     getSystemConfig()
@@ -30,11 +31,19 @@ export function SystemSettingsView() {
     <div className="container mx-auto py-6 max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Configuracion del Sistema</h1>
-        <p className="text-sm text-muted-foreground">Notificaciones, integraciones y opciones del area publica</p>
+        <p className="text-sm text-muted-foreground">Identidad, notificaciones y opciones del area publica</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+        <button
+          onClick={() => setTab('general')}
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            tab === 'general' ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Settings className="h-4 w-4" /> General
+        </button>
         <button
           onClick={() => setTab('notifications')}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
@@ -52,6 +61,10 @@ export function SystemSettingsView() {
           <Globe className="h-4 w-4" /> Area Publica
         </button>
       </div>
+
+      {tab === 'general' && (
+        <GeneralSettings config={config} onChange={setConfig} />
+      )}
 
       {tab === 'notifications' && (
         <NotificationSettings config={config} onChange={setConfig} />

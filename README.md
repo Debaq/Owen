@@ -106,3 +106,171 @@ El sistema maneja datos de docentes (nombre, RUT, correo, telefono) y de usuario
 ## Estado del proyecto
 
 Owen es un sistema en desarrollo activo. Las funcionalidades de gestion de horarios, mapa interactivo, autenticacion y consulta publica estan operativas. Las funcionalidades de solicitudes con inteligencia artificial, reportes QR, calendario y generacion de reportes se encuentran en fase de construccion.
+
+---
+
+## Owen Solver — Generacion automatica de horarios (beta)
+
+Owen incluye un motor de asignacion automatica de salas y horarios. El problema de asignar sesiones academicas a salas, docentes y bloques horarios respetando multiples restricciones simultaneas es conocido formalmente como **University Course Timetabling Problem (UCTP)**, clasificado como NP-hard en la teoria de complejidad computacional. Esto significa que no existe un algoritmo que garantice encontrar la solucion optima en tiempo razonable para todas las instancias; la cantidad de combinaciones crece exponencialmente con cada variable agregada.
+
+La investigacion academica lleva decadas estudiando este problema. Las International Timetabling Competitions (ITC 2002, 2007, 2011, 2019), organizadas por universidades europeas con instancias de datos reales, han servido como referencia para evaluar algoritmos. Owen basa sus decisiones de diseno en los hallazgos de estas competiciones y en la literatura de optimizacion combinatoria.
+
+### Por que no basta con asignar a mano
+
+Un campus mediano tiene entre 200 y 800 asignaturas, cada una con sesiones teoricas y practicas, docentes con disponibilidad variable, salas con distintos tipos y capacidades, y restricciones que interactuan entre si. Una sola asignatura de 60 alumnos con horas teoricas y de laboratorio puede generar 9 sesiones independientes que deben ubicarse sin conflictos. El espacio total de combinaciones posibles para un semestre tipico supera las 10^15 posibilidades, lo que hace inviable la enumeracion manual o por fuerza bruta.
+
+Los sistemas existentes como Darwin (en uso en la institucion) terminan requiriendo que la asignacion se haga manualmente porque no modelan la complejidad real del problema. UniTime (Purdue University, usado con ~30,000 estudiantes y ~8,000 secciones) documenta que el mayor desafio de implementacion no fue el algoritmo sino la calidad de los datos y la resistencia organizacional. Owen aborda ambos problemas: valida datos antes de optimizar y proporciona explicaciones detalladas de cada decision.
+
+### Arquitectura del solver
+
+Owen Solver es una aplicacion de escritorio separada del servidor web. El gestor la descarga, la ejecuta en su maquina local y se conecta a Owen via API. Esta separacion tiene una razon tecnica: los algoritmos de optimizacion requieren computo intensivo que no corresponde al servidor web, y la ejecucion se realiza pocas veces por semestre (inicio de cada temporada academica).
+
+La aplicacion esta construida con Tauri (framework de aplicaciones de escritorio basado en Rust) y funciona principalmente como un servicio local que Owen web consume desde el navegador. El gestor no necesita salir de Owen para configurar, ejecutar o revisar resultados; la aplicacion de escritorio proporciona unicamente un panel minimo de conexion y estado.
+
+**Stack del solver:**
+
+| Componente | Tecnologia | Justificacion |
+|-----------|-----------|---------------|
+| Motor de optimizacion | Rust | Rendimiento comparable a C++ (lenguaje dominante en solvers academicos ganadores de ITC), seguridad de memoria sin garbage collector, compilacion a binario unico sin dependencias externas (~15 MB) |
+| Solver ILP para asignacion de salas | HiGHS (via crate `highs`) | Solver de programacion lineal entera open source (licencia MIT). Competitivo con solvers comerciales como CPLEX y Gurobi en benchmarks del Hans Mittelmann (Arizona State University). Bindings nativos para Rust, compila junto con la aplicacion sin sidecars |
+| Framework de escritorio | Tauri | Binario ~15 MB vs ~150 MB de Electron. Usa webview nativo del sistema operativo. Backend en Rust donde reside el solver |
+| Interfaz web (Owen) | React + Tailwind CSS | La configuracion, ejecucion, revision de resultados y confirmacion se realizan en Owen web. El solver no duplica la interfaz |
+
+**Alternativas evaluadas y descartadas:**
+
+| Alternativa | Razon de descarte |
+|------------|-------------------|
+| Python + Google OR-Tools empaquetado con PyInstaller | Binarios de 200-300 MB, problemas documentados de empaquetado con dependencias C++, antivirus que marcan ejecutables PyInstaller como sospechosos, usuarios finales no pueden tener Python instalado |
+| Solver embebido en PHP (servidor) | PHP 7.4 es 50-100x mas lento que Rust para computo intensivo. El solver correria en el servidor compartido afectando a otros usuarios |
+| OR-Tools como sidecar en Tauri | OR-Tools no tiene bindings oficiales para Rust. Como binario externo pesaria ~50 MB adicionales y requeriria compilacion separada por sistema operativo |
+| Algoritmos geneticos puros | Consistentemente peor rendimiento que Simulated Annealing en todas las ITC. El cruce de soluciones de timetabling produce soluciones infactibles que requieren operadores de reparacion costosos (Burke & Kendall, 2005) |
+
+### Algoritmo de resolucion
+
+El motor utiliza un enfoque hibrido en tres fases, basado en los hallazgos de las competiciones ITC:
+
+**Fase 1a — Construccion greedy con MRV**
+
+Genera una solucion factible inicial asignando sesiones a bloques horarios y dias. Las sesiones se ordenan por la heuristica de Minimum Remaining Values (MRV): la sesion con menos opciones validas se asigna primero. Esta heuristica, proveniente de la investigacion en Constraint Satisfaction Problems (Russell & Norvig, "Artificial Intelligence: A Modern Approach"), reduce drasticamente el backtracking al atacar primero los puntos de mayor restriccion.
+
+**Fase 1b — Simulated Annealing para optimizacion de horarios**
+
+Refina la solucion inicial mediante Simulated Annealing (SA), el algoritmo que gano la ITC 2019 (Ceschia, Di Gaspero & Schaerf, Universidad de Udine). SA explora el espacio de soluciones aceptando movimientos que empeoran temporalmente el resultado con una probabilidad que decrece gradualmente (analogia con el enfriamiento de metales en metalurgia). Esto le permite escapar de optimos locales donde otros algoritmos se atascan.
+
+Los movimientos del vecindario incluyen:
+- Intercambio de bloques entre dos sesiones del mismo dia
+- Reubicacion de una sesion a otro bloque o dia libre
+- Intercambio de dias completos entre sesiones
+- Movimientos en cadena: mover sesion A al lugar de B, B al de C, C al de A
+
+El enfriamiento es adaptativo: si no encuentra mejoras en N iteraciones, incrementa la temperatura (reheating) para explorar regiones nuevas del espacio de soluciones. El tiempo de ejecucion es configurable (30 segundos a 5 minutos).
+
+**Fase 2 — Asignacion de salas via programacion lineal entera (ILP)**
+
+Con los horarios ya fijados, la asignacion de salas se formula como un problema de programacion lineal entera y se resuelve con HiGHS. Este sub-problema (Room Assignment Problem) es significativamente mas tratable que el timetabling completo: mientras el problema general tiene complejidad O((B x S)^n) donde B es bloques, S es salas y n es sesiones, el RAP con horarios fijos tiene complejidad O(S^n), reduciendo el espacio de busqueda en ordenes de magnitud.
+
+La descomposicion en dos fases (horarios primero, salas despues) es una tecnica estandar en la literatura conocida como "matheuristic" (Boschetti et al., 2009). La fase de salas puede resolverse de forma optima (no aproximada) mediante ILP para instancias del tamano de Owen.
+
+La funcion objetivo del ILP maximiza:
+- Estabilidad de sala (que un curso mantenga la misma sala toda la semana)
+- Proximidad de capacidad (no asignar auditorios de 200 a clases de 15)
+- Coincidencia de equipamiento (labs para practicas, computadores si se requieren)
+- Proximidad geografica entre sesiones consecutivas del mismo nivel y docente
+
+**Fase 3 — Verificacion y explicabilidad**
+
+Toda solucion pasa por verificacion exhaustiva de restricciones duras y calculo de score de calidad (0-100) global y por sesion. Cada asignacion incluye una explicacion en texto: por que esa sala, por que ese horario, que penalizaciones tiene.
+
+La explicabilidad no es accesoria. La experiencia documentada de implementaciones reales (UniTime en Purdue, solver de la Universidad de Udine) muestra que los gestores rechazan sistemas de "caja negra". Si el solver dice "sala X para tu clase" sin explicar por que, la confianza es baja y se vuelve a la asignacion manual.
+
+### Variables del problema
+
+La unidad minima de asignacion no es la asignatura sino la **sesion**. Una asignatura se descompone en sesiones teoricas (grupo completo) y sesiones practicas (subgrupos o secciones), porque los laboratorios tienen menor capacidad que las aulas. Esta division en secciones, que la escuela o el docente define, es el caso mas comun en universidades y Owen la soporta nativamente.
+
+Para cada sesion, el solver debe decidir: en que sala, en que bloque horario y en que dia. Las restricciones que gobiernan esas decisiones se dividen en duras (inviolables) y blandas (optimizables):
+
+**Restricciones duras (la solucion es invalida si se viola cualquiera):**
+
+- Una sala en un bloque y dia solo puede tener una sesion
+- Un docente en un bloque y dia solo puede tener una sesion
+- Un nivel o seccion en un bloque y dia solo puede tener una sesion (excepto secciones de practica simultaneas en distintas salas)
+- La capacidad de la sala debe ser mayor o igual a los alumnos de la sesion
+- El tipo de sala debe ser compatible (laboratorio para practicas, aula para teoria)
+- La gestion de la sala debe permitirlo (salas de carrera solo para esa carrera, salas centrales para cualquiera)
+- El docente debe estar disponible en ese bloque y dia (restriccion especialmente critica para docentes part-time e investigadores)
+- No asignar en feriados, eventos institucionales (elecciones, evaluaciones nacionales de ingreso) ni semanas sin clases
+- Respetar bloqueos de nivel definidos por la direccion de carrera (dias o bloques reservados para todo el semestre)
+- Respetar la temporada activa y el semestre de la asignatura
+
+**Restricciones blandas (ponderadas, el solver maximiza su cumplimiento):**
+
+| Restriccion | Peso | Fundamentacion |
+|------------|------|----------------|
+| Edificios a mas de 15 minutos en bloques consecutivos del mismo nivel | 5000 | En el campus de Puerto Montt hay edificios separados hasta 40 minutos a pie. Con 10 minutos entre bloques, el traslado es fisicamente imposible. El clima lluvioso de la zona agrava el problema al obligar a los estudiantes a usar transporte publico |
+| Respetar preferencias fuertes de disponibilidad docente | 1000 | Docentes part-time e investigadores tienen horarios fragmentados que no son negociables en la practica |
+| Sesiones consecutivas del mismo nivel en el mismo edificio o adyacente | 800 | Misma razon de distancias. En la practica funciona como restriccion dura |
+| Calidad pedagogica: distribucion equilibrada, sin huecos, teoria antes que practica | 500 | Evitar dias sobrecargados alternando con dias vacios; los huecos entre clases son tiempo muerto para estudiantes |
+| Sesiones consecutivas del mismo docente en el mismo edificio | 400 | El docente tambien necesita llegar a tiempo |
+| Concentrar el dia de un nivel en maximo dos edificios | 300 | Reducir traslados totales en el dia |
+| Secciones de practica equilibradas y coordinadas | 200 | Grupos de tamano similar, idealmente en bloques paralelos o cercanos |
+| Preferencias suaves de docente (manana, tarde) | 200 | Diferencia entre "puede" y "prefiere" |
+| Eficiencia de sala: capacidad justa, equipamiento adecuado | 150 | No desperdiciar infraestructura ni usar salas sin el equipamiento necesario |
+| Minimizar huecos entre clases del mismo nivel | 100 | Huecos de 1-2 bloques sin clase obligan a los estudiantes a esperar |
+| Pisos bajos para grupos grandes | 50 | Accesibilidad y evacuacion |
+
+Los pesos son configurables por el gestor antes de cada ejecucion, con presets predefinidos ("Priorizar alumnos", "Priorizar docentes", "Equilibrado"). La configurabilidad de pesos es una recomendacion directa de la literatura: una suma ponderada fija produce resultados no intuitivos cuando las prioridades institucionales cambian entre semestres.
+
+### Versionado de horarios
+
+El proceso de construir un horario no es lineal. El solver genera una propuesta inicial, los directores de carrera solicitan ajustes, los docentes piden cambios, se re-ejecuta el solver parcialmente, se compara con alternativas. Owen implementa un sistema de versionado inspirado en Git para gestionar este proceso:
+
+**Branch** — Cada propuesta de horario es un branch independiente. El gestor puede crear branches alternativos para explorar escenarios ("que pasa si Enfermeria no tiene clases los viernes") sin afectar la propuesta principal. Si la alternativa es mejor, se fusiona; si no, se descarta.
+
+**Commit** — Cada cambio en un horario genera un commit con metadatos: que cambio, quien lo cambio, cuando, por que y de que tipo (generacion del solver, ajuste manual, solicitud aprobada). Esto crea una trazabilidad completa del proceso.
+
+**Diff** — Se pueden comparar dos estados cualesquiera del horario para ver exactamente que sesiones se agregaron, eliminaron o movieron, y como afecto el puntaje de calidad global.
+
+**Merge** — Para aplicar una propuesta al horario oficial, el sistema detecta conflictos (si otra propuesta ya modifico las mismas sesiones) y permite resolverlos antes de publicar.
+
+**Tag** — Un commit marcado como version oficial es el horario que ven los usuarios publicos. Si se necesita un cambio posterior (por ejemplo, una sala cerrada por emergencia), se genera un nuevo commit y se actualiza el tag.
+
+**Rollback** — Cualquier cambio puede revertirse volviendo a un commit anterior, sin perder el historial. "El horario de ayer era mejor" deja de ser un problema.
+
+Este sistema resuelve problemas documentados en implementaciones reales: la falta de trazabilidad ("quien movio esa clase"), la imposibilidad de comparar alternativas, la perdida de estados anteriores y los conflictos silenciosos cuando multiples personas ajustan el horario simultaneamente.
+
+### Datos que alimentan al solver
+
+El solver necesita datos completos y correctos para producir resultados utiles. Owen valida los datos antes de ejecutar el solver e informa que falta:
+
+| Dato | Fuente en Owen | Uso en el solver |
+|------|---------------|-----------------|
+| Asignaturas con horas de teoria y practica | Gestion academica | Generar sesiones (la unidad minima de asignacion) |
+| Docentes asignados a cada asignatura (responsable, colaboradores) | Relacion docente-asignatura | Determinar quien dicta cada sesion |
+| Disponibilidad docente por bloque y dia, con nivel de preferencia | Configuracion de disponibilidad | Restriccion dura (no puede) y blanda (prefiere) |
+| Salas con tipo, capacidad, equipamiento, mobiliario y tipo de gestion | Gestion de salas | Filtrar salas compatibles por sesion |
+| Alumnos estimados por nivel | Gestion academica | Calcular secciones necesarias y validar capacidad |
+| Bloques horarios del sistema activo | Configuracion de bloques | Definir franjas disponibles |
+| Feriados, eventos institucionales, semanas sin clases | Configuracion del semestre | Excluir fechas no lectivas |
+| Bloqueos de nivel (dias o bloques reservados por la direccion) | Configuracion por carrera | Restriccion dura |
+| Distancias entre edificios (tiempo real de traslado) | Configuracion del campus | Penalizar o prohibir traslados imposibles |
+| Horarios ya confirmados (para re-ejecucion parcial) | Versionado de horarios | Fijar asignaciones y resolver solo lo que cambio |
+
+### Escala esperada
+
+| Concepto | Rango tipico |
+|----------|-------------|
+| Carreras | 10-30 |
+| Niveles por carrera | 4-5 |
+| Asignaturas por nivel | 5-8 |
+| Total asignaturas | 200-800 |
+| Sesiones por asignatura (con secciones) | 2-9 |
+| Total sesiones a asignar por semestre | 1,000-5,000 |
+| Bloques por dia | 8-12 |
+| Dias lectivos | 5-6 |
+| Salas | 50-150 |
+| Docentes | 100-400 |
+| Tiempo de ejecucion estimado | 30-120 segundos |
+
+### Documentacion tecnica detallada
+
+El documento completo con todas las restricciones, el modelo de datos del versionado, el formato JSON de intercambio, los endpoints de API, la estructura del proyecto Tauri y las referencias academicas se encuentra en [`docs/algoritmo-asignacion-salas.md`](docs/algoritmo-asignacion-salas.md).

@@ -8,15 +8,19 @@ import { BuildingsView } from './features/buildings/views/BuildingsView'
 import { HomePage } from './features/public/views/HomePage'
 import { PublicRoomView } from './features/public/views/PublicRoomView'
 import { PublicBuildingView } from './features/public/views/PublicBuildingView'
+import { CampusGuideView } from './features/public/views/CampusGuideView'
+import { DirectoresListView } from './features/public/views/DirectoresListView'
+import { AgendaPublicView } from './features/public/views/AgendaPublicView'
+import { AgendaView } from './features/agenda/views/AgendaView'
 import { ScheduleWizardView } from './features/schedule-wizard/views/ScheduleWizardView'
 import { MapView as MapViewComponent } from './features/map/views/MapView'
 import { POIManagerView } from './features/map/views/POIManagerView'
 
 // Placeholder components (to be implemented in later phases)
 const Dashboard = () => <div className="p-6"><h1 className="text-2xl font-bold">Dashboard</h1></div>
-const Requests = () => <div className="p-6"><h1 className="text-2xl font-bold">Solicitudes</h1></div>
+import { RequestsView } from './features/requests/views/RequestsView'
 const Observations = () => <div className="p-6"><h1 className="text-2xl font-bold">Observaciones</h1></div>
-const Reports = () => <div className="p-6"><h1 className="text-2xl font-bold">Reportes</h1></div>
+import { ReportsView } from './features/reports/views/ReportsView'
 import CarrerasView from './features/academic/views/CarrerasView'
 import DocentesView from './features/academic/views/DocentesView'
 import UnidadesView from './features/academic/views/UnidadesView'
@@ -43,6 +47,18 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginView />,
+  },
+  {
+    path: '/campus',
+    element: <CampusGuideView />,
+  },
+  {
+    path: '/agenda',
+    element: <DirectoresListView />,
+  },
+  {
+    path: '/agenda/:directorId',
+    element: <AgendaPublicView />,
   },
   // Panel de administración (protegido)
   {
@@ -102,7 +118,7 @@ export const router = createBrowserRouter([
       {
         path: 'academic/carreras',
         element: (
-          <ProtectedRoute requiredRole="gestor">
+          <ProtectedRoute requiredRole={['gestor', 'direccion', 'secretaria']}>
             <CarrerasView />
           </ProtectedRoute>
         ),
@@ -110,7 +126,7 @@ export const router = createBrowserRouter([
       {
         path: 'academic/docentes',
         element: (
-          <ProtectedRoute requiredRole="gestor">
+          <ProtectedRoute requiredRole={['gestor', 'direccion', 'secretaria']}>
             <DocentesView />
           </ProtectedRoute>
         ),
@@ -134,7 +150,15 @@ export const router = createBrowserRouter([
       // Sistema
       {
         path: 'requests',
-        element: <Requests />,
+        element: <RequestsView />,
+      },
+      {
+        path: 'agenda',
+        element: (
+          <ProtectedRoute requiredRole={['direccion', 'secretaria']}>
+            <AgendaView />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'observations',
@@ -143,8 +167,8 @@ export const router = createBrowserRouter([
       {
         path: 'reports',
         element: (
-          <ProtectedRoute requiredRole="gestor">
-            <Reports />
+          <ProtectedRoute requiredRole={['gestor', 'direccion', 'secretaria']}>
+            <ReportsView />
           </ProtectedRoute>
         ),
       },

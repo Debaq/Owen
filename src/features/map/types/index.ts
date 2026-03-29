@@ -18,6 +18,15 @@ export type POICategory =
   | 'patio'
   | 'gimnasio'
   | 'auditorio'
+  | 'secretaria'
+  | 'direccion'
+  | 'vicerrectoria'
+  | 'asuntos_estudiantiles'
+  | 'laboratorio_investigacion'
+  | 'museo'
+  | 'casino'
+  | 'sala_estar'
+  | 'patio_comida'
   | 'otro';
 
 export interface POI {
@@ -92,6 +101,15 @@ export const POI_CATEGORIES_CONFIG: POICategoryConfig[] = [
   { category: 'patio', label: 'Patio', icon: '🏛️', color: '#a3e635', defaultVisible: true },
   { category: 'gimnasio', label: 'Gimnasio', icon: '🏋️', color: '#f43f5e', defaultVisible: true },
   { category: 'auditorio', label: 'Auditorio', icon: '🎭', color: '#a855f7', defaultVisible: true },
+  { category: 'secretaria', label: 'Secretaría', icon: '📋', color: '#0ea5e9', defaultVisible: true },
+  { category: 'direccion', label: 'Dirección', icon: '🏫', color: '#7c3aed', defaultVisible: true },
+  { category: 'vicerrectoria', label: 'Vicerrectoría', icon: '🏛️', color: '#1e40af', defaultVisible: true },
+  { category: 'asuntos_estudiantiles', label: 'Asuntos Estudiantiles', icon: '🎓', color: '#059669', defaultVisible: true },
+  { category: 'laboratorio_investigacion', label: 'Lab. Investigación', icon: '🔬', color: '#b45309', defaultVisible: true },
+  { category: 'museo', label: 'Museo', icon: '🖼️', color: '#9333ea', defaultVisible: true },
+  { category: 'casino', label: 'Casino/Comedor', icon: '🍽️', color: '#e11d48', defaultVisible: true },
+  { category: 'sala_estar', label: 'Sala de Estar', icon: '🛋️', color: '#0891b2', defaultVisible: true },
+  { category: 'patio_comida', label: 'Patio de Comida', icon: '🍕', color: '#ea580c', defaultVisible: true },
   { category: 'otro', label: 'Otro', icon: '📍', color: '#6b7280', defaultVisible: true },
 ];
 

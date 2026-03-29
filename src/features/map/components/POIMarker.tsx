@@ -5,9 +5,12 @@ import { getPOICategoryConfig } from '../types';
 
 interface POIMarkerProps {
   poi: POI;
+  canEdit?: boolean;
+  onEdit?: (poi: POI) => void;
+  onDelete?: (poi: POI) => void;
 }
 
-export function POIMarker({ poi }: POIMarkerProps) {
+export function POIMarker({ poi, canEdit, onEdit, onDelete }: POIMarkerProps) {
   const config = getPOICategoryConfig(poi.category);
   const iconEmoji = poi.icon || config.icon;
   const markerColor = poi.color || config.color;
@@ -51,13 +54,25 @@ export function POIMarker({ poi }: POIMarkerProps) {
           {poi.description && (
             <p className="text-sm text-gray-700 mt-2">{poi.description}</p>
           )}
-          {poi.metadata && Object.keys(poi.metadata).length > 0 && (
-            <div className="mt-2 pt-2 border-t text-xs text-gray-600">
-              {Object.entries(poi.metadata).map(([key, value]) => (
-                <div key={key}>
-                  <span className="font-semibold">{key}:</span> {String(value)}
-                </div>
-              ))}
+          {poi.metadata?.piso && (
+            <p className="text-xs text-gray-500 mt-1">Piso {poi.metadata.piso}</p>
+          )}
+          {canEdit && (
+            <div className="flex gap-2 mt-3 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => onEdit?.(poi)}
+                className="flex-1 px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete?.(poi)}
+                className="flex-1 px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+              >
+                Eliminar
+              </button>
             </div>
           )}
         </div>

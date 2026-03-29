@@ -212,6 +212,11 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
   return response.data.data || {};
 };
 
+export const getPublicConfig = async (): Promise<SystemConfig> => {
+  const response = await api.get('/system-config.php?public=1');
+  return response.data.data || {};
+};
+
 export const saveSystemConfig = async (config: Partial<SystemConfig>): Promise<void> => {
   await api.post('/system-config.php', config);
 };

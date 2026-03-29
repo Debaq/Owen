@@ -111,6 +111,21 @@ function requireRole($role) {
     }
 }
 
+function requireRoles($roles) {
+    requireAuth();
+    if (!in_array($_SESSION['user_role'], $roles)) {
+        jsonResponse(['error' => 'Acceso denegado'], 403);
+    }
+}
+
+function isOwnCarrera($pdo, $carreraId) {
+    if ($_SESSION['user_role'] === 'gestor') return true;
+    $stmt = $pdo->prepare("SELECT carrera_id FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+    return $user && $user['carrera_id'] === $carreraId;
+}
+
 /**
  * Sanitiza un string para prevenir XSS al devolver en JSON
  */

@@ -12,7 +12,9 @@ import type {
   BloqueHorario,
   Feriado,
   Horario,
-  // Solicitud,
+  Solicitud,
+  MobiliarioType,
+  RoomMatchResult,
   // Liberacion,
   // Observacion,
   // Bloqueo,
@@ -32,14 +34,16 @@ export type {
   BloqueHorario,
   Feriado,
   Horario,
-  // Solicitud,
+  Solicitud,
+  MobiliarioType,
+  RoomMatchResult,
   // Liberacion,
   // Observacion,
   // Bloqueo,
 }
 
 // Additional utility types
-export type Role = 'gestor' | 'direccion'
+export type Role = 'gestor' | 'direccion' | 'secretaria'
 export type RoomType = 'aula' | 'laboratorio' | 'auditorio' | 'taller' | 'sala_reuniones' | 'oficina' | 'biblioteca' | 'medioteca'
 export type RecurrenceType = 'semanal' | 'quincenal' | 'mensual' | 'unica' | 'anual'
 export type RequestStatus = 'pendiente' | 'aprobada' | 'rechazada' | 'auto_aprobada'

@@ -96,6 +96,7 @@ export interface Sala {
   tipo: 'aula' | 'laboratorio' | 'auditorio' | 'taller' | 'sala_reuniones' | 'oficina' | 'biblioteca' | 'medioteca'
   capacidad: number
   mobiliario: string[]
+  tipo_mobiliario?: 'sillas_individuales' | 'butacas' | 'mesas_sillas' | 'mesas_trabajo' | 'computadores' | 'mixto' | null
   equipamiento: string[]
   reglas?: string
   lat: number
@@ -157,4 +158,49 @@ export interface Horario {
   created_by: string
   created_at: string
   updated_at?: string
+}
+
+// Sistema de Solicitudes
+export type MobiliarioType = 'sillas_individuales' | 'butacas' | 'mesas_sillas' | 'mesas_trabajo' | 'computadores' | 'mixto'
+
+export interface Solicitud {
+  id: string
+  solicitante: string
+  carrera_id: string
+  usuario_id: string
+  motivo: string
+  asignatura_code?: string
+  sala_preferida_id?: string
+  tipo_sala?: 'aula' | 'laboratorio' | 'auditorio' | 'taller'
+  mobiliario_requerido?: MobiliarioType | null
+  capacidad_requerida?: number
+  equipamiento_requerido: string[]
+  fecha_inicio: string
+  fecha_fin: string
+  bloques: string[]
+  recurrente: boolean
+  patron_recurrencia?: object
+  estado: 'pendiente' | 'aprobada' | 'rechazada' | 'auto_aprobada'
+  sala_asignada_id?: string
+  respuesta_gestor?: string
+  revisado_por?: string
+  procesada_por_agente: boolean
+  confianza_agente?: number
+  created_at: string
+  updated_at?: string
+}
+
+export interface RoomMatchResult {
+  sala: Sala
+  score: number
+  available: boolean
+  conflicts: string[]
+  breakdown: {
+    disponibilidad: number
+    capacidad: number
+    tipo: number
+    mobiliario: number
+    equipamiento: number
+    preferida: number
+  }
 }
