@@ -23,6 +23,10 @@ switch ($action) {
         handleMe($pdo);
         break;
 
+    case 'check-token':
+        handleCheckToken($pdo);
+        break;
+
     default:
         jsonResponse(['error' => 'Acción no válida'], 400);
 }
@@ -85,6 +89,25 @@ function handleLogout() {
     session_unset();
     session_destroy();
     jsonResponse(['success' => true, 'message' => 'Sesión cerrada']);
+}
+
+function handleCheckToken($pdo) {
+    $header = getAuthorizationHeader();
+    $hasFunc = function_exists('requireAuthOrToken') ? 'yes' : 'no';
+    $hasTable = false;
+    try {
+        $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='solver_api_tokens'");
+        $hasTable = (bool)$stmt->fetch();
+    } catch (Exception $e) {
+        // ignore
+    }
+    jsonResponse([
+        'auth_header' => $header ? substr($header, 0, 20) . '...' : 'EMPTY',
+        'has_function' => $hasFunc,
+        'has_table' => $hasTable,
+        'php_version' => PHP_VERSION,
+        'sapi' => php_sapi_name(),
+    ]);
 }
 
 function handleMe($pdo) {

@@ -153,22 +153,30 @@ function requireApiToken() {
         jsonResponse(['error' => 'Token requerido'], 401);
     }
     $token = substr($header, 7);
-    $stmt = $pdo->prepare(
-        "SELECT t.id as token_id, t.user_id, u.role as user_role, u.name as user_name
-         FROM solver_api_tokens t
-         JOIN users u ON t.user_id = u.id
-         WHERE t.token = ? AND t.activo = 1"
-    );
-    $stmt->execute([$token]);
-    $row = $stmt->fetch();
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT t.id as token_id, t.user_id, u.role as user_role, u.name as user_name
+             FROM solver_api_tokens t
+             JOIN users u ON t.user_id = u.id
+             WHERE t.token = ? AND t.activo = 1"
+        );
+        $stmt->execute([$token]);
+        $row = $stmt->fetch();
+    } catch (Exception $e) {
+        jsonResponse(['error' => 'Error de token: ' . $e->getMessage()], 500);
+    }
     if (!$row) {
         jsonResponse(['error' => 'Token invalido o revocado'], 401);
     }
     $_SESSION['user_id'] = $row['user_id'];
     $_SESSION['user_role'] = $row['user_role'];
     $_SESSION['user_name'] = $row['user_name'];
-    $upd = $pdo->prepare("UPDATE solver_api_tokens SET last_used_at = datetime('now') WHERE id = ?");
-    $upd->execute([$row['token_id']]);
+    try {
+        $upd = $pdo->prepare("UPDATE solver_api_tokens SET last_used_at = datetime('now') WHERE id = ?");
+        $upd->execute([$row['token_id']]);
+    } catch (Exception $e) {
+        // No crítico, continuar
+    }
     return $row;
 }
 
