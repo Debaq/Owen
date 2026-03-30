@@ -16,11 +16,9 @@ mkdir -p "$BACKEND/db"
 cp backend/api/*.php "$BACKEND/api/"
 cp backend/api/.htaccess "$BACKEND/api/" 2>/dev/null
 
-# Copiar schema, install, migrate, seed
+# Copiar schema y migrate (NO install.php, NO seed)
 cp backend/schema.sql "$BACKEND/"
-cp backend/install.php "$BACKEND/"
 cp backend/migrate_solver.php "$BACKEND/"
-cp backend/seed_test_data.php "$BACKEND/"
 
 # Crear .htaccess en db/ para proteger la base de datos
 echo "Deny from all" > "$BACKEND/db/.htaccess"
