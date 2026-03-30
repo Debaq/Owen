@@ -38,7 +38,9 @@ function tableExists($pdo, $table) {
 $results = [];
 $errors = [];
 
-echo "=== Migración Sistema Owen ===\n\n";
+if ($isCli) echo "=== Migración Sistema Owen ===\n\n";
+
+try {
 
 // ─────────────────────────────────────────────
 // 1. Columnas nuevas en tablas existentes
@@ -296,4 +298,12 @@ if ($isCli) {
         'data' => $results,
         'message' => 'Migración completada: ' . count($results) . ' operaciones'
     ]);
+}
+
+} catch (Exception $e) {
+    if ($isCli) {
+        echo "[ERROR] " . $e->getMessage() . "\n";
+    } else {
+        jsonResponse(['error' => 'Error en migración: ' . $e->getMessage()], 500);
+    }
 }
