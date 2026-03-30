@@ -1,6 +1,6 @@
-# Owen - Sistema de Gestión de Salas
+# Owen - Sistema de Información de Salas
 
-Owen es una plataforma web para la gestión de salas en campus universitarios. Permite consultar los horarios de cada sala, buscar horarios de docentes y asignaturas, explorar el campus en un mapa interactivo con puntos de interés y reportar observaciones mediante códigos QR.
+Owen es una plataforma web que muestra la información de las salas de un campus universitario. Permite consultar los horarios de cada sala, buscar horarios de docentes y asignaturas, explorar el campus en un mapa interactivo con puntos de interés y reportar observaciones mediante códigos QR.
 
 Es accesible desde cualquier navegador sin necesidad de instalar aplicaciones.
 
@@ -39,8 +39,8 @@ Cualquier persona puede consultar el horario semanal de una sala o de un docente
 ### Mapa interactivo del campus
 Un mapa visual del campus que muestra edificios, puntos de interes y rutas. Permite ubicar rapidamente donde queda cada sala o dependencia. Funciona con cartografia abierta (OpenStreetMap) y no requiere servicios de pago.
 
-### Gestion de salas
-Los gestores administran las salas del campus: tipo, capacidad, equipamiento, edificio y tipo de gestion (central, por carrera o por unidad). Las salas de carrera solo son visibles para el gestor correspondiente.
+### Administracion de salas
+Los gestores registran y mantienen la información de las salas del campus: tipo, capacidad, equipamiento, edificio y tipo de gestion (central, por carrera o por unidad). Las salas de carrera solo son visibles para el gestor correspondiente.
 
 ### Reportes por codigo QR
 Las salas y areas comunes del campus (banos, pasillos, patios) tienen codigos QR fisicos. Cualquier persona puede escanearlos con su celular para enviar una observacion anonima: un desperfecto, una sugerencia, un problema de limpieza o seguridad.
@@ -102,7 +102,7 @@ El sistema maneja datos de docentes (nombre, RUT, correo, telefono) y de usuario
 
 ## Estado del proyecto
 
-Owen es un sistema en desarrollo activo. La consulta publica de horarios, el mapa interactivo, la gestion de salas y la autenticacion estan operativas. Las funcionalidades de reportes por QR, gestion de horarios, solicitudes inteligentes, calendario y generacion de reportes se encuentran en fase de planificacion o construccion.
+Owen es un sistema en desarrollo activo. La consulta publica de horarios, el mapa interactivo, la administracion de salas y la autenticacion estan operativas. Las funcionalidades de reportes por QR, gestion de horarios, solicitudes inteligentes, calendario y generacion de reportes se encuentran en fase de planificacion o construccion.
 
 ---
 
