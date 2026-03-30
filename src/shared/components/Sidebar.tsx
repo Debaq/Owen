@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -21,16 +22,19 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { getSystemConfig } from '@/features/settings/services/settingsService'
 
 interface NavigationItem {
   name: string
   href: string
   icon: React.ElementType
   roles?: string[] // si no se define, visible para todos
+  feature?: string // feature flag requerido para mostrar
 }
 
 interface NavigationSection {
   title?: string
+  feature?: string // feature flag requerido para mostrar la sección completa
   items: NavigationItem[]
 }
 
@@ -39,7 +43,7 @@ const navigation: NavigationSection[] = [
     items: [
       { name: 'navigation.dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'navigation.schedules', href: '/admin/schedules', icon: Calendar },
-      { name: 'Asistente Horarios', href: '/admin/schedule-wizard', icon: CalendarPlus, roles: ['gestor'] },
+      { name: 'Asistente Horarios', href: '/admin/schedule-wizard', icon: CalendarPlus, roles: ['gestor'], feature: 'solver' },
     ]
   },
   {
@@ -60,6 +64,7 @@ const navigation: NavigationSection[] = [
   },
   {
     title: 'Solver',
+    feature: 'solver',
     items: [
       { name: 'Generar Horarios', href: '/admin/solver', icon: Cpu, roles: ['gestor'] },
       { name: 'Sesiones', href: '/admin/solver/sessions', icon: Cpu, roles: ['gestor'] },
@@ -80,18 +85,42 @@ const navigation: NavigationSection[] = [
   }
 ]
 
+const featureConfigKeys: Record<string, string> = {
+  solver: 'solver_enabled',
+}
+
 export default function Sidebar() {
   const { t } = useTranslation()
   const location = useLocation()
   const { user } = useAuth()
   const userRole = user?.role || ''
+  const [enabledFeatures, setEnabledFeatures] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    getSystemConfig()
+      .then(cfg => {
+        const features: Record<string, boolean> = {}
+        for (const [feature, key] of Object.entries(featureConfigKeys)) {
+          features[feature] = cfg[key] === '1'
+        }
+        setEnabledFeatures(features)
+      })
+      .catch(() => {})
+  }, [])
+
+  const isFeatureEnabled = (feature?: string) => {
+    if (!feature) return true
+    return enabledFeatures[feature] === true
+  }
 
   return (
     <aside className="w-20 md:w-64 bg-white shadow-sm border-r min-h-[calc(100vh-65px)] overflow-y-auto flex-shrink-0 transition-all duration-300">
       <nav className="p-2 md:p-4 space-y-6">
         {navigation.map((section, index) => {
+          if (!isFeatureEnabled(section.feature)) return null
+
           const visibleItems = section.items.filter(item =>
-            !item.roles || item.roles.includes(userRole)
+            (!item.roles || item.roles.includes(userRole)) && isFeatureEnabled(item.feature)
           )
           if (visibleItems.length === 0) return null
 

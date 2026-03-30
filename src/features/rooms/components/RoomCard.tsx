@@ -63,7 +63,7 @@ export function RoomCard({ room, onView, onEdit, onDelete, showActions = true }:
   const featuredEquipment = room.equipamiento.slice(0, 3)
   const remainingEquipment = room.equipamiento.length - 3
   const hasPhotos = room.fotos && room.fotos.length > 0
-  const publicUrl = `${window.location.origin}/public/room/${room.id}`
+  const publicUrl = `${window.location.origin}/owen/public/room/${room.id}`
 
   return (
     <Card className="hover:shadow-lg transition-shadow overflow-hidden flex flex-col">

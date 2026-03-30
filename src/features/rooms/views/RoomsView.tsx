@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner'
 import { RoomList } from '../components/RoomList'
 import { RoomForm } from '../components/RoomForm'
+import { QRPrintSheet } from '../components/QRPrintSheet'
 import type { RoomWithBuilding, RoomFormData } from '../services/roomService'
 import {
   createRoom,
@@ -29,6 +30,7 @@ export function RoomsView() {
   const [roomToDelete, setRoomToDelete] = useState<RoomWithBuilding | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [qrRooms, setQrRooms] = useState<RoomWithBuilding[] | null>(null)
 
   // Handler para crear nueva sala
   const handleCreateNew = () => {
@@ -115,6 +117,7 @@ export function RoomsView() {
         onRoomEdit={handleRoomEdit}
         onRoomDelete={handleRoomDelete}
         onCreateNew={handleCreateNew}
+        onPrintQR={(rooms) => setQrRooms(rooms)}
         showActions={true}
       />
 
@@ -210,6 +213,11 @@ export function RoomsView() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Vista de impresión QR */}
+      {qrRooms && (
+        <QRPrintSheet rooms={qrRooms} onClose={() => setQrRooms(null)} />
+      )}
 
       {/* Dialog de confirmación para eliminar */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

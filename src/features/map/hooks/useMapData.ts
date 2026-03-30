@@ -29,7 +29,7 @@ export function useMapData() {
 
   const loadMapData = async () => {
     try {
-      setData(prev => ({ ...prev, loading: true, error: null }));
+      setData(prev => ({ ...prev, error: null }));
 
       const [pois, routes, areas, edificios, salas] = await Promise.all([
         getPOIs().catch(() => []),

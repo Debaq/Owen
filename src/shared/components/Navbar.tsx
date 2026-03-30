@@ -1,12 +1,21 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { SolverIndicator } from '@/features/solver/components/SolverIndicator'
+import { getSystemConfig } from '@/features/settings/services/settingsService'
 
 export default function Navbar() {
   const { t, i18n } = useTranslation()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [solverEnabled, setSolverEnabled] = useState(false)
+
+  useEffect(() => {
+    getSystemConfig()
+      .then(cfg => setSolverEnabled(cfg.solver_enabled === '1'))
+      .catch(() => {})
+  }, [])
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'es' ? 'en' : 'es'
@@ -39,7 +48,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
-          {user?.role === 'gestor' && <SolverIndicator />}
+          {user?.role === 'gestor' && solverEnabled && <SolverIndicator />}
           <button
             onClick={toggleLanguage}
             className="px-3 py-1 text-sm font-medium text-gray-700 hover:text-gray-900 border rounded hover:bg-gray-50"

@@ -14,13 +14,14 @@ import { RoomCard } from './RoomCard'
 import type { RoomWithBuilding, RoomFilters } from '../services/roomService'
 import { filterRooms, getRoomsWithBuildings, getAllBuildings } from '../services/roomService'
 import type { Edificio } from '@/shared/types'
-import { Search, Filter, X, Plus } from 'lucide-react'
+import { Search, Filter, X, Plus, QrCode } from 'lucide-react'
 
 interface RoomListProps {
   onRoomView?: (room: RoomWithBuilding) => void
   onRoomEdit?: (room: RoomWithBuilding) => void
   onRoomDelete?: (room: RoomWithBuilding) => void
   onCreateNew?: () => void
+  onPrintQR?: (rooms: RoomWithBuilding[]) => void
   showActions?: boolean
 }
 
@@ -29,6 +30,7 @@ export function RoomList({
   onRoomEdit,
   onRoomDelete,
   onCreateNew,
+  onPrintQR,
   showActions = true,
 }: RoomListProps) {
   const [, setRooms] = useState<RoomWithBuilding[]>([])
@@ -190,6 +192,13 @@ export function RoomList({
               </Badge>
             )}
           </Button>
+
+          {onPrintQR && filteredRooms.length > 0 && (
+            <Button variant="outline" onClick={() => onPrintQR(filteredRooms)}>
+              <QrCode className="h-4 w-4 mr-2" />
+              Imprimir QR
+            </Button>
+          )}
 
           {onCreateNew && (
             <Button onClick={onCreateNew}>

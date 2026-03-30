@@ -357,7 +357,7 @@ export function HomePage() {
         <div className="container mx-auto px-4 py-6 text-center text-sm text-gray-600">
           <p>{siteConfig.site_footer || 'Sistema OWEN'}</p>
           <p className="mt-1">
-            <a href="/report" className="text-blue-600 hover:underline">Reportar observacion</a>
+            <a href="/owen/report" className="text-blue-600 hover:underline">Reportar observación</a>
           </p>
         </div>
       </footer>

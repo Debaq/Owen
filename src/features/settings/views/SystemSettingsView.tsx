@@ -4,9 +4,10 @@ import { NotificationSettings } from '../components/NotificationSettings'
 import { PublicAreaSettings } from '../components/PublicAreaSettings'
 import { GeneralSettings } from '../components/GeneralSettings'
 import { SolverTokenSettings } from '../components/SolverTokenSettings'
-import { Bell, Globe, Key, Loader2, Settings } from 'lucide-react'
+import { QRPrintSettings } from '../components/QRPrintSettings'
+import { Bell, Globe, Key, Loader2, QrCode, Settings } from 'lucide-react'
 
-type Tab = 'general' | 'notifications' | 'public' | 'tokens'
+type Tab = 'general' | 'notifications' | 'public' | 'tokens' | 'qr'
 
 export function SystemSettingsView() {
   const [config, setConfig] = useState<SystemConfig>({})
@@ -62,13 +63,23 @@ export function SystemSettingsView() {
           <Globe className="h-4 w-4" /> Area Publica
         </button>
         <button
-          onClick={() => setTab('tokens')}
+          onClick={() => setTab('qr')}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-            tab === 'tokens' ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            tab === 'qr' ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          <Key className="h-4 w-4" /> Tokens API
+          <QrCode className="h-4 w-4" /> QR
         </button>
+        {config.solver_enabled === '1' && (
+          <button
+            onClick={() => setTab('tokens')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+              tab === 'tokens' ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Key className="h-4 w-4" /> Tokens API
+          </button>
+        )}
       </div>
 
       {tab === 'general' && (
@@ -81,6 +92,10 @@ export function SystemSettingsView() {
 
       {tab === 'public' && (
         <PublicAreaSettings config={config} onChange={setConfig} />
+      )}
+
+      {tab === 'qr' && (
+        <QRPrintSettings config={config} onChange={setConfig} />
       )}
 
       {tab === 'tokens' && (

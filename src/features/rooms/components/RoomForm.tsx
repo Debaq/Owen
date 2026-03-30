@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -19,7 +20,8 @@ import type { Sala, Edificio, Carrera, UnidadAcademica } from '@/shared/types/mo
 import type { RoomFormData } from '../services/roomService'
 import { getAllBuildings } from '../services/roomService'
 import { getCarreras, getUnidades } from '@/features/settings/services/settingsService'
-import { AlertTriangle, X } from 'lucide-react'
+import { MapLocationPicker } from '@/features/buildings/components/MapLocationPicker'
+import { AlertTriangle, X, MapPin } from 'lucide-react'
 
 const roomFormSchema = z.object({
   code: z.string().min(1, 'El código es requerido').max(20, 'Máximo 20 caracteres'),
@@ -51,12 +53,14 @@ interface RoomFormProps {
 }
 
 export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }: RoomFormProps) {
+  const navigate = useNavigate()
   const [edificios, setEdificios] = useState<Edificio[]>([])
   const [carreras, setCarreras] = useState<Carrera[]>([])
   const [unidades, setUnidades] = useState<UnidadAcademica[]>([])
   const [isFetching, setIsFetching] = useState(true)
   const [newMobiliario, setNewMobiliario] = useState('')
   const [newEquipamiento, setNewEquipamiento] = useState('')
+  const [showMapPicker, setShowMapPicker] = useState(false)
 
   const {
     register,
@@ -141,7 +145,7 @@ export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }:
         <AlertTriangle className="h-8 w-8 text-amber-600" />
         <h3 className="text-lg font-semibold">Configuración requerida</h3>
         <p className="text-amber-800 text-sm">Debe registrar un edificio primero.</p>
-        <Button onClick={() => window.location.href = '/admin/buildings'}>Ir a Edificios</Button>
+        <Button onClick={() => navigate('/admin/buildings')}>Ir a Edificios</Button>
       </div>
     )
   }
@@ -162,8 +166,15 @@ export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }:
         
         <div className="space-y-2">
           <Label>Edificio *</Label>
-          <Select 
-            onValueChange={(val) => setValue('edificio_id', val)} 
+          <Select
+            onValueChange={(val) => {
+              setValue('edificio_id', val)
+              const edificio = edificios.find(e => e.id === val)
+              if (edificio) {
+                setValue('lat', edificio.lat)
+                setValue('lng', edificio.lng)
+              }
+            }}
             defaultValue={watch('edificio_id')}
           >
             <SelectTrigger>
@@ -301,6 +312,82 @@ export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }:
             </p>
         )}
       </div>
+
+      {/* UBICACIÓN EN EL MAPA */}
+      {watch('edificio_id') && (
+        <div className="bg-muted/30 p-4 rounded-lg space-y-3 border border-green-100">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-green-700 flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Ubicación en el Mapa
+            </h4>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMapPicker(!showMapPicker)}
+            >
+              {showMapPicker ? 'Ocultar mapa' : 'Ajustar ubicación'}
+            </Button>
+          </div>
+
+          {(() => {
+            const selectedEdificio = edificios.find(e => e.id === watch('edificio_id'))
+            const currentLat = watch('lat')
+            const currentLng = watch('lng')
+            const isAtBuilding = selectedEdificio &&
+              Math.abs((currentLat || 0) - selectedEdificio.lat) < 0.0001 &&
+              Math.abs((currentLng || 0) - selectedEdificio.lng) < 0.0001
+
+            return (
+              <>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold text-gray-600">Edificio:</span>{' '}
+                    {selectedEdificio?.name || '—'}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-600">Coordenadas:</span>{' '}
+                    {currentLat?.toFixed(6)}, {currentLng?.toFixed(6)}
+                  </div>
+                </div>
+
+                {!isAtBuilding && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <span>
+                      La sala no está en las coordenadas del edificio.{' '}
+                      <button
+                        type="button"
+                        className="underline font-semibold hover:text-amber-900"
+                        onClick={() => {
+                          if (selectedEdificio) {
+                            setValue('lat', selectedEdificio.lat)
+                            setValue('lng', selectedEdificio.lng)
+                          }
+                        }}
+                      >
+                        Usar coordenadas del edificio
+                      </button>
+                    </span>
+                  </div>
+                )}
+              </>
+            )
+          })()}
+
+          {showMapPicker && (
+            <MapLocationPicker
+              lat={watch('lat') || -41.48780}
+              lng={watch('lng') || -72.89699}
+              onLocationChange={(newLat, newLng) => {
+                setValue('lat', newLat)
+                setValue('lng', newLng)
+              }}
+            />
+          )}
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Fotos de la Sala</Label>
