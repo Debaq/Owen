@@ -27,6 +27,10 @@ import UnidadesView from './features/academic/views/UnidadesView'
 import BloquesView from './features/academic/views/BloquesView'
 
 import { SystemSettingsView } from './features/settings/views/SystemSettingsView'
+import { BlockadesView } from './features/blockades/views/BlockadesView'
+import { SessionGeneratorView } from './features/solver/views/SessionGeneratorView'
+import { SolverView } from './features/solver/views/SolverView'
+import { VersioningView } from './features/versioning/views/VersioningView'
 
 // Public views placeholders
 const PublicTeacherView = () => <div className="p-6"><h1 className="text-2xl font-bold">Horario Público - Docente</h1></div>
@@ -177,6 +181,39 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredRole="gestor">
             <SystemSettingsView />
+          </ProtectedRoute>
+        ),
+      },
+      // Solver
+      {
+        path: 'system/blockades',
+        element: (
+          <ProtectedRoute requiredRole="gestor">
+            <BlockadesView />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'solver',
+        element: (
+          <ProtectedRoute requiredRole="gestor">
+            <SolverView />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'solver/sessions',
+        element: (
+          <ProtectedRoute requiredRole="gestor">
+            <SessionGeneratorView />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'versioning',
+        element: (
+          <ProtectedRoute requiredRole="gestor">
+            <VersioningView />
           </ProtectedRoute>
         ),
       },

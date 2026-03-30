@@ -15,6 +15,9 @@ import {
   GraduationCap,
   Users,
   CalendarClock,
+  ShieldBan,
+  Cpu,
+  GitBranch,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -53,6 +56,15 @@ const navigation: NavigationSection[] = [
       { name: 'Carreras', href: '/admin/academic/carreras', icon: GraduationCap },
       { name: 'Unidades', href: '/admin/academic/unidades', icon: Building2, roles: ['gestor'] },
       { name: 'Docentes', href: '/admin/academic/docentes', icon: Users },
+    ]
+  },
+  {
+    title: 'Solver',
+    items: [
+      { name: 'Generar Horarios', href: '/admin/solver', icon: Cpu, roles: ['gestor'] },
+      { name: 'Sesiones', href: '/admin/solver/sessions', icon: Cpu, roles: ['gestor'] },
+      { name: 'Bloqueos', href: '/admin/system/blockades', icon: ShieldBan, roles: ['gestor'] },
+      { name: 'Versionado', href: '/admin/versioning', icon: GitBranch, roles: ['gestor'] },
     ]
   },
   {

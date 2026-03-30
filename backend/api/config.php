@@ -31,6 +31,8 @@ $allowed_origins = [
     'http://localhost:3000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:3000',
+    'http://localhost:9377',
+    'http://127.0.0.1:9377',
 ];
 
 if (in_array($origin, $allowed_origins, true)) {
@@ -116,6 +118,52 @@ function requireRoles($roles) {
     if (!in_array($_SESSION['user_role'], $roles)) {
         jsonResponse(['error' => 'Acceso denegado'], 403);
     }
+}
+
+/**
+ * Autenticacion por Bearer token (para Owen Solver y API externa)
+ * Busca en tabla solver_api_tokens, setea $_SESSION como si fuera login normal
+ */
+function requireApiToken() {
+    global $pdo;
+    $header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    if (strpos($header, 'Bearer ') !== 0) {
+        jsonResponse(['error' => 'Token requerido'], 401);
+    }
+    $token = substr($header, 7);
+    $stmt = $pdo->prepare(
+        "SELECT t.id as token_id, t.user_id, u.role as user_role, u.name as user_name
+         FROM solver_api_tokens t
+         JOIN users u ON t.user_id = u.id
+         WHERE t.token = ? AND t.activo = 1"
+    );
+    $stmt->execute([$token]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        jsonResponse(['error' => 'Token invalido o revocado'], 401);
+    }
+    $_SESSION['user_id'] = $row['user_id'];
+    $_SESSION['user_role'] = $row['user_role'];
+    $_SESSION['user_name'] = $row['user_name'];
+    $upd = $pdo->prepare("UPDATE solver_api_tokens SET last_used_at = datetime('now') WHERE id = ?");
+    $upd->execute([$row['token_id']]);
+    return $row;
+}
+
+/**
+ * Intenta autenticacion por sesion PHP; si no hay sesion, intenta Bearer token.
+ * Permite que los endpoints funcionen desde navegador y desde el solver.
+ */
+function requireAuthOrToken() {
+    if (isset($_SESSION['user_id'])) {
+        return;
+    }
+    $header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    if (strpos($header, 'Bearer ') === 0) {
+        requireApiToken();
+        return;
+    }
+    jsonResponse(['error' => 'No autorizado'], 401);
 }
 
 function isOwnCarrera($pdo, $carreraId) {

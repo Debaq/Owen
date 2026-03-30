@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { SolverIndicator } from '@/features/solver/components/SolverIndicator'
 
 export default function Navbar() {
   const { t, i18n } = useTranslation()
@@ -38,6 +39,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
+          {user?.role === 'gestor' && <SolverIndicator />}
           <button
             onClick={toggleLanguage}
             className="px-3 py-1 text-sm font-medium text-gray-700 hover:text-gray-900 border rounded hover:bg-gray-50"
