@@ -272,6 +272,13 @@ $indices = [
 
 $indexCount = 0;
 foreach ($indices as $idx) {
+    // Extraer nombre de tabla del índice para verificar que existe
+    if (preg_match('/\bON\s+(\w+)\s*\(/i', $idx, $m)) {
+        if (!tableExists($pdo, $m[1])) {
+            $results[] = "[!] indice omitido - tabla {$m[1]} no existe";
+            continue;
+        }
+    }
     $pdo->exec($idx);
     $indexCount++;
 }
