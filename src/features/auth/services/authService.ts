@@ -72,20 +72,29 @@ class AuthService {
 
   /**
    * Validate session with server
+   * Returns: user if valid, null if rejected (401), or stored user on network error
    */
   async validateSession(): Promise<AuthUser | null> {
     try {
       const response = await api.get('/auth.php?action=me')
-      if (response.data.success && response.data.user) {
-        const user = response.data.user as AuthUser
+      const userData = response.data.user || response.data.data
+      if (response.data.success && userData) {
+        const user = userData as AuthUser
         this.setCurrentUser(user)
         return user
       }
-    } catch (error) {
-      // If 401, clear local storage
+      // Server respondió pero sin usuario válido
       this.clearSession()
+      return null
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        // Sesión expirada o inválida: limpiar
+        this.clearSession()
+        return null
+      }
+      // Error de red o CORS: mantener sesión local
+      return this.getCurrentUser()
     }
-    return null
   }
 
   /**

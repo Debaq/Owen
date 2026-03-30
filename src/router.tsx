@@ -16,8 +16,7 @@ import { ScheduleWizardView } from './features/schedule-wizard/views/ScheduleWiz
 import { MapView as MapViewComponent } from './features/map/views/MapView'
 import { POIManagerView } from './features/map/views/POIManagerView'
 
-// Placeholder components (to be implemented in later phases)
-const Dashboard = () => <div className="p-6"><h1 className="text-2xl font-bold">Dashboard</h1></div>
+import { DashboardView } from './features/dashboard/views/DashboardView'
 import { RequestsView } from './features/requests/views/RequestsView'
 const Observations = () => <div className="p-6"><h1 className="text-2xl font-bold">Observaciones</h1></div>
 import { ReportsView } from './features/reports/views/ReportsView'
@@ -79,7 +78,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <Dashboard />,
+        element: <DashboardView />,
       },
       {
         path: 'schedules',

@@ -6,13 +6,14 @@ error_reporting(0);
 ini_set('display_errors', 0);
 
 // 2. Configurar Cookies seguras
+$isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
 session_set_cookie_params([
     'lifetime' => 3600,     // 1 hora
     'path' => '/',
     'domain' => '',         // Dominio actual
-    'secure' => true,       // Solo HTTPS
+    'secure' => $isSecure,  // HTTPS en producción, HTTP en desarrollo
     'httponly' => true,      // Seguridad contra XSS
-    'samesite' => 'Strict'  // Protección CSRF
+    'samesite' => 'Lax'     // Compatible con same-site y navegación normal
 ]);
 
 // Iniciar sesión

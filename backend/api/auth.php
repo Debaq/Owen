@@ -132,7 +132,7 @@ function handleMe($pdo) {
     $user = $stmt->fetch();
 
     if ($user) {
-        jsonResponse(['success' => true, 'data' => $user]);
+        jsonResponse(['success' => true, 'user' => $user]);
     } else {
         jsonResponse(['error' => 'Usuario no encontrado'], 404);
     }

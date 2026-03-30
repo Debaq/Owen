@@ -23,11 +23,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Initialize auth state and validate with server
   useEffect(() => {
     const initAuth = async () => {
-      // First, get from local storage for immediate UI feedback
-      const currentUser = authService.getCurrentUser()
-      setUser(currentUser)
-      
-      // Then, validate with server to ensure session is still alive
+      // Carga inmediata desde sessionStorage para UI instantánea
+      const cachedUser = authService.getCurrentUser()
+      setUser(cachedUser)
+
+      // Validar con el servidor (maneja 401 vs error de red internamente)
       const validatedUser = await authService.validateSession()
       setUser(validatedUser)
       setIsLoading(false)
