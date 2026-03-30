@@ -88,26 +88,29 @@ function handleLogout() {
 }
 
 function handleMe($pdo) {
-    if (!isset($_SESSION['user_id'])) {
-        jsonResponse(['error' => 'No autenticado'], 401);
-    }
+    // Aceptar sesión PHP o Bearer token (para Owen Solver)
+    requireAuthOrToken();
 
-    // Verificar timeout de inactividad (30 min)
-    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 1800) {
+    // Verificar timeout de inactividad (30 min) solo para sesiones web
+    $header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    $isToken = strpos($header, 'Bearer ') === 0;
+
+    if (!$isToken && isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 1800) {
         session_unset();
         session_destroy();
         jsonResponse(['error' => 'Sesión expirada por inactividad'], 401);
     }
-    $_SESSION['last_activity'] = time();
+    if (!$isToken) {
+        $_SESSION['last_activity'] = time();
+    }
 
     $stmt = $pdo->prepare("SELECT id, email, role, name, carrera_id FROM users WHERE id = :id");
     $stmt->execute(['id' => $_SESSION['user_id']]);
     $user = $stmt->fetch();
 
     if ($user) {
-        jsonResponse(['success' => true, 'user' => $user]);
+        jsonResponse(['success' => true, 'data' => $user]);
     } else {
-        session_destroy();
         jsonResponse(['error' => 'Usuario no encontrado'], 404);
     }
 }
