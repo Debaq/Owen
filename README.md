@@ -1,16 +1,16 @@
-# Owen - Sistema de Horarios Institucional
+# Owen - Sistema de Gestión de Salas
 
-Owen es una plataforma web diseñada para organizar y consultar los horarios de un campus universitario. Permite coordinar salas, docentes y asignaturas en un solo lugar, con un mapa interactivo del campus y un sistema de reportes mediante códigos QR.
+Owen es una plataforma web para la gestión de salas en campus universitarios. Permite consultar los horarios de cada sala, buscar horarios de docentes y asignaturas, explorar el campus en un mapa interactivo con puntos de interés y reportar observaciones mediante códigos QR.
 
-El sistema está en uso en el campus de Puerto Montt, Chile, y es accesible desde cualquier navegador sin necesidad de instalar aplicaciones.
+Es accesible desde cualquier navegador sin necesidad de instalar aplicaciones.
 
 ---
 
 ## El problema que resuelve
 
-Coordinar horarios en una institución educativa es un proceso complejo. Hay que asignar salas a asignaturas, evitar que dos clases coincidan en el mismo espacio o que un docente tenga dos compromisos simultáneos, gestionar solicitudes de espacios entre distintas unidades académicas y mantener informada a toda la comunidad.
+En un campus universitario, la información sobre las salas esta dispersa: que clase se dicta en cada sala, donde queda cada edificio, quien tiene una sala asignada en un momento dado, como reportar un problema en una dependencia. Esta fragmentación obliga a estudiantes, docentes y administrativos a depender de planillas, carteles físicos y consultas informales.
 
-Owen centraliza toda esta gestión en una herramienta accesible por internet, eliminando la dependencia de planillas, correos y coordinación manual.
+Owen centraliza toda esta información en un solo lugar accesible por internet: cualquier persona puede ver que esta pasando en cada sala, encontrar espacios en el mapa y reportar problemas con un escaneo de QR.
 
 ---
 
@@ -33,32 +33,29 @@ Cualquier persona puede consultar horarios de salas y docentes sin necesidad de 
 
 ## Funcionalidades principales
 
-### Gestion de horarios
-El corazon del sistema. Permite asignar asignaturas a salas en bloques horarios especificos, asociando un docente responsable. Soporta distintos tipos de recurrencia: semanal, quincenal (semanas pares o impares), mensual, una fecha unica o anual.
-
-Antes de confirmar un horario, el sistema verifica automaticamente que no existan conflictos:
-- Que la sala no este ocupada en ese mismo bloque
-- Que el docente no tenga otra clase al mismo tiempo
-- Que el nivel academico no tenga dos clases simultaneas
-- Que la sala no este bloqueada por mantenimiento
-- Que la fecha no coincida con un feriado registrado
-
-### Solicitudes inteligentes de sala
-Las Direcciones de Carrera pueden solicitar salas a traves de un formulario. El sistema incorpora inteligencia artificial que analiza la disponibilidad y, cuando tiene alta confianza en que la solicitud es viable (80% o mas), puede aprobarla automaticamente. Si no, la deriva a un gestor para revision manual, quien puede aprobarla, rechazarla o sugerir una alternativa.
+### Consulta de horarios
+Cualquier persona puede consultar el horario semanal de una sala o de un docente sin necesidad de iniciar sesion. Existen enlaces publicos que pueden compartirse libremente o vincularse desde otras paginas institucionales. Tambien es posible buscar horarios por asignatura, carrera o nivel.
 
 ### Mapa interactivo del campus
 Un mapa visual del campus que muestra edificios, puntos de interes y rutas. Permite ubicar rapidamente donde queda cada sala o dependencia. Funciona con cartografia abierta (OpenStreetMap) y no requiere servicios de pago.
+
+### Gestion de salas
+Los gestores administran las salas del campus: tipo, capacidad, equipamiento, edificio y tipo de gestion (central, por carrera o por unidad). Las salas de carrera solo son visibles para el gestor correspondiente.
 
 ### Reportes por codigo QR
 Las salas y areas comunes del campus (banos, pasillos, patios) tienen codigos QR fisicos. Cualquier persona puede escanearlos con su celular para enviar una observacion anonima: un desperfecto, una sugerencia, un problema de limpieza o seguridad.
 
 Cada observacion genera un ticket que sigue un flujo de atencion: nuevo, en revision, en proceso, resuelto y cerrado. Los gestores administran estos tickets desde el sistema.
 
-### Horarios publicos
-Existen enlaces publicos que permiten consultar el horario semanal de una sala o de un docente sin necesidad de iniciar sesion. Estos enlaces pueden compartirse libremente o vincularse desde otras paginas institucionales.
-
 ### Soporte bilingue
 La interfaz esta disponible en espanol e ingles, lo que permite su uso por parte de usuarios de distintos idiomas.
+
+### Funcionalidades planificadas a futuro
+Las siguientes funcionalidades estan contempladas pero no forman parte del sistema actual:
+
+- **Gestion de horarios:** Creacion y edicion de horarios directamente desde el sistema, con deteccion automatica de conflictos (sala ocupada, docente con clase simultanea, feriados, etc.) y soporte para distintos tipos de recurrencia (semanal, quincenal, mensual, unica, anual).
+- **Solicitudes inteligentes de sala:** Formulario para que Direcciones de Carrera soliciten salas, con analisis de disponibilidad asistido por inteligencia artificial y aprobacion automatica o derivacion a gestor.
+- **Liberacion de clases:** Posibilidad de que Direcciones de Carrera liberen salas cuando una clase no se va a realizar.
 
 ---
 
@@ -105,7 +102,7 @@ El sistema maneja datos de docentes (nombre, RUT, correo, telefono) y de usuario
 
 ## Estado del proyecto
 
-Owen es un sistema en desarrollo activo. Las funcionalidades de gestion de horarios, mapa interactivo, autenticacion y consulta publica estan operativas. Las funcionalidades de solicitudes con inteligencia artificial, reportes QR, calendario y generacion de reportes se encuentran en fase de construccion.
+Owen es un sistema en desarrollo activo. La consulta publica de horarios, el mapa interactivo, la gestion de salas y la autenticacion estan operativas. Las funcionalidades de reportes por QR, gestion de horarios, solicitudes inteligentes, calendario y generacion de reportes se encuentran en fase de planificacion o construccion.
 
 ---
 
