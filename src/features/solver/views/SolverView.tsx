@@ -45,10 +45,10 @@ export function SolverView() {
   const [selectedTemporada, setSelectedTemporada] = useState('')
   const [tiempoMax, setTiempoMax] = useState(30)
   const [pesos, setPesos] = useState(PRESETS.equilibrado)
-  const [token, setToken] = useState('')
   const [progress, setProgress] = useState<SolverProgress | null>(null)
   const [result, setResult] = useState<unknown>(null)
   const [showResults, setShowResults] = useState(false)
+  const [preparingSolver, setPreparingSolver] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -58,9 +58,6 @@ export function SolverView() {
       const activa = temps.find((t: Temporada) => t.activa)
       if (activa) setSelectedTemporada(activa.id)
     })
-    // Cargar token guardado
-    const saved = localStorage.getItem('owen_solver_token')
-    if (saved) setToken(saved)
   }, [])
 
   useEffect(() => {
@@ -72,12 +69,17 @@ export function SolverView() {
   }
 
   const handleRun = async () => {
-    if (!token) { toast.error('Ingresa un token API del solver'); return }
     if (!selectedTemporada) { toast.error('Selecciona una temporada'); return }
 
-    localStorage.setItem('owen_solver_token', token)
-
+    setPreparingSolver(true)
     try {
+      // Auto-generar token temporal para esta ejecución
+      const tokenRes = await api.post<ApiResponse<{ token: string }>>('/solver-tokens.php?action=create', {
+        nombre: `Solver auto ${new Date().toLocaleString('es-CL')}`,
+      })
+      const token = tokenRes.data.data?.token
+      if (!token) throw new Error('No se pudo generar token')
+
       const serverUrl = api.defaults.baseURL || ''
       await solverLocalService.run({
         server_url: serverUrl,
@@ -91,6 +93,8 @@ export function SolverView() {
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al iniciar solver'
       toast.error(msg)
+    } finally {
+      setPreparingSolver(false)
     }
   }
 
@@ -135,8 +139,8 @@ export function SolverView() {
   }
 
   const handleExportOffline = () => {
-    if (!selectedTemporada || !token) {
-      toast.error('Selecciona temporada e ingresa token')
+    if (!selectedTemporada) {
+      toast.error('Selecciona una temporada')
       return
     }
     const url = `${api.defaults.baseURL}/solver-export.php?temporada_id=${selectedTemporada}`
@@ -227,12 +231,6 @@ export function SolverView() {
             </div>
 
             <div>
-              <Label>Token API</Label>
-              <Input type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="Token generado en Configuración → Tokens" />
-              <p className="text-xs text-muted-foreground mt-1">Genera un token en Configuración del sistema</p>
-            </div>
-
-            <div>
               <Label className="mb-2 block">Presets de pesos</Label>
               <div className="flex gap-2">
                 {Object.keys(PRESETS).map(name => (
@@ -267,9 +265,9 @@ export function SolverView() {
             <Button
               className="w-full" size="lg"
               onClick={handleRun}
-              disabled={!connected || running || !selectedTemporada || !token}
+              disabled={!connected || running || !selectedTemporada || preparingSolver}
             >
-              <Play className="w-4 h-4 mr-2" /> Generar Horarios
+              <Play className="w-4 h-4 mr-2" /> {preparingSolver ? 'Preparando...' : 'Generar Horarios'}
             </Button>
 
             {running && (
