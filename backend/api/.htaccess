@@ -1,0 +1,8 @@
+# Pasar header Authorization a PHP (necesario para Bearer tokens)
+# LiteSpeed/Apache lo stripean por defecto en CGI/FastCGI
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Alternativa: SetEnvIf
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1

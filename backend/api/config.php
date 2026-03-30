@@ -121,12 +121,34 @@ function requireRoles($roles) {
 }
 
 /**
+ * Obtener header Authorization (compatible con LiteSpeed/Apache/Nginx)
+ */
+function getAuthorizationHeader() {
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        return $_SERVER['HTTP_AUTHORIZATION'];
+    }
+    if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        return $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    }
+    if (function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        if (isset($headers['Authorization'])) {
+            return $headers['Authorization'];
+        }
+        if (isset($headers['authorization'])) {
+            return $headers['authorization'];
+        }
+    }
+    return '';
+}
+
+/**
  * Autenticacion por Bearer token (para Owen Solver y API externa)
  * Busca en tabla solver_api_tokens, setea $_SESSION como si fuera login normal
  */
 function requireApiToken() {
     global $pdo;
-    $header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    $header = getAuthorizationHeader();
     if (strpos($header, 'Bearer ') !== 0) {
         jsonResponse(['error' => 'Token requerido'], 401);
     }
@@ -158,7 +180,7 @@ function requireAuthOrToken() {
     if (isset($_SESSION['user_id'])) {
         return;
     }
-    $header = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    $header = getAuthorizationHeader();
     if (strpos($header, 'Bearer ') === 0) {
         requireApiToken();
         return;
