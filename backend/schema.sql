@@ -127,6 +127,7 @@ CREATE TABLE niveles (
   nombre TEXT NOT NULL,
   orden INTEGER NOT NULL,
   semestre TEXT NOT NULL DEFAULT 'impar' CHECK(semestre IN ('par', 'impar', 'anual')),
+  alumnos_estimados INTEGER DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE
 );
@@ -145,6 +146,8 @@ CREATE TABLE asignaturas (
   creditos INTEGER NOT NULL DEFAULT 0,
   duracion_semanas INTEGER NOT NULL DEFAULT 17,
   semana_inicio INTEGER NOT NULL DEFAULT 1,
+  equipamiento_requerido TEXT DEFAULT '[]',
+  requiere_laboratorio INTEGER DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE,
   FOREIGN KEY (nivel_id) REFERENCES niveles(id) ON DELETE CASCADE
@@ -156,6 +159,8 @@ CREATE TABLE docente_disponibilidad (
   docente_id TEXT NOT NULL,
   dia_semana INTEGER NOT NULL CHECK(dia_semana BETWEEN 1 AND 6),
   bloque_id TEXT NOT NULL,
+  preferencia INTEGER DEFAULT 3,
+  temporada_id TEXT,
   FOREIGN KEY (docente_id) REFERENCES docentes(id) ON DELETE CASCADE,
   FOREIGN KEY (bloque_id) REFERENCES bloques_horarios(id) ON DELETE CASCADE
 );
