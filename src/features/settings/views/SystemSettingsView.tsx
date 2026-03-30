@@ -3,9 +3,10 @@ import { getSystemConfig, type SystemConfig } from '../services/settingsService'
 import { NotificationSettings } from '../components/NotificationSettings'
 import { PublicAreaSettings } from '../components/PublicAreaSettings'
 import { GeneralSettings } from '../components/GeneralSettings'
-import { Bell, Globe, Loader2, Settings } from 'lucide-react'
+import { SolverTokenSettings } from '../components/SolverTokenSettings'
+import { Bell, Globe, Key, Loader2, Settings } from 'lucide-react'
 
-type Tab = 'general' | 'notifications' | 'public'
+type Tab = 'general' | 'notifications' | 'public' | 'tokens'
 
 export function SystemSettingsView() {
   const [config, setConfig] = useState<SystemConfig>({})
@@ -60,6 +61,14 @@ export function SystemSettingsView() {
         >
           <Globe className="h-4 w-4" /> Area Publica
         </button>
+        <button
+          onClick={() => setTab('tokens')}
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            tab === 'tokens' ? 'bg-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Key className="h-4 w-4" /> Tokens API
+        </button>
       </div>
 
       {tab === 'general' && (
@@ -72,6 +81,10 @@ export function SystemSettingsView() {
 
       {tab === 'public' && (
         <PublicAreaSettings config={config} onChange={setConfig} />
+      )}
+
+      {tab === 'tokens' && (
+        <SolverTokenSettings />
       )}
     </div>
   )
