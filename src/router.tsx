@@ -37,10 +37,6 @@ const PublicSubjectView = () => <div className="p-6"><h1 className="text-2xl fon
 const PublicLevelView = () => <div className="p-6"><h1 className="text-2xl font-bold">Horario Público - Nivel</h1></div>
 const PublicObservation = () => <div className="p-6"><h1 className="text-2xl font-bold">Reportar Observación</h1></div>
 
-// Auto-detectar basename desde la URL del script actual
-const detectedBase = new URL(import.meta.url).pathname.replace(/\/assets\/.*$/, '') || '/'
-const basename = detectedBase === '/' ? undefined : detectedBase
-
 export const router = createBrowserRouter([
   // Página de inicio pública
   {
@@ -248,4 +244,4 @@ export const router = createBrowserRouter([
     path: '/report',
     element: <PublicObservation />,
   },
-], { basename })
+], { basename: '/owen' })
