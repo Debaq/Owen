@@ -348,7 +348,7 @@ export function RoomForm({ initialData, onSubmit, onCancel, isLoading = false }:
                   </div>
                   <div>
                     <span className="font-semibold text-gray-600">Coordenadas:</span>{' '}
-                    {currentLat?.toFixed(6)}, {currentLng?.toFixed(6)}
+                    {currentLat != null ? Number(currentLat).toFixed(6) : ''}, {currentLng != null ? Number(currentLng).toFixed(6) : ''}
                   </div>
                 </div>
 

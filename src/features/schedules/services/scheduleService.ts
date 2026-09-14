@@ -111,7 +111,8 @@ export async function getSchedulesBySubject(asignaturaId: string, temporadaId?: 
 export async function getScheduleGrid(
   type: 'room' | 'teacher' | 'level' | 'subject',
   id: string,
-  temporadaId?: string
+  temporadaId?: string,
+  sistemaId?: string
 ): Promise<ScheduleGridCell[]> {
   // Obtener horarios según el tipo
   let horarios: HorarioWithDetails[]
@@ -133,8 +134,8 @@ export async function getScheduleGrid(
       horarios = []
   }
 
-  // Obtener todos los bloques
-  const bloques = await getAllBlocks()
+  // Obtener bloques del sistema de la temporada
+  const bloques = await getAllBlocks(sistemaId)
 
   // Crear grilla
   const grid: ScheduleGridCell[] = []
@@ -157,10 +158,12 @@ export async function getScheduleGrid(
 }
 
 /**
- * Obtener todos los bloques horarios activos
+ * Obtener bloques horarios activos, opcionalmente filtrados por sistema
  */
-export async function getAllBlocks(): Promise<BloqueHorario[]> {
-  const response = await api.get<ApiResponse<BloqueHorario[]>>('/bloques.php?activo=1')
+export async function getAllBlocks(sistemaId?: string): Promise<BloqueHorario[]> {
+  const params = new URLSearchParams({ activo: '1' })
+  if (sistemaId) params.append('sistema_bloque_id', sistemaId)
+  const response = await api.get<ApiResponse<BloqueHorario[]>>(`/bloques.php?${params.toString()}`)
   return response.data.data || []
 }
 

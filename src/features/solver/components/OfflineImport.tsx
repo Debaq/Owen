@@ -90,7 +90,7 @@ export function OfflineImport({ onImported }: Props) {
             {preview && (
               <div className="bg-gray-50 rounded-lg p-3 text-sm">
                 <p><strong>Sesiones asignadas:</strong> {preview.sesiones}</p>
-                <p><strong>Score global:</strong> {preview.score.toFixed(1)}</p>
+                <p><strong>Score global:</strong> {Number(preview.score).toFixed(1)}</p>
               </div>
             )}
 

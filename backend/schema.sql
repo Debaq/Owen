@@ -60,8 +60,10 @@ CREATE TABLE temporadas (
   año INTEGER NOT NULL,
   fecha_inicio TEXT NOT NULL,
   fecha_fin TEXT NOT NULL,
+  sistema_bloque_id TEXT,
   activa INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sistema_bloque_id) REFERENCES sistemas_bloques(id) ON DELETE SET NULL
 );
 
 DROP TABLE IF EXISTS feriados;
@@ -613,6 +615,55 @@ CREATE TABLE horario_tags (
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
+-- =====================================================
+-- TABLAS DE STUDENT SORTING (GRUPOS)
+-- =====================================================
+
+-- Estudiantes: registro liviano para sorting de grupos
+DROP TABLE IF EXISTS estudiantes;
+CREATE TABLE estudiantes (
+  id TEXT PRIMARY KEY,
+  rut TEXT,
+  nombre TEXT NOT NULL,
+  email TEXT,
+  carrera_id TEXT NOT NULL,
+  nivel_id TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE,
+  FOREIGN KEY (nivel_id) REFERENCES niveles(id) ON DELETE SET NULL
+);
+
+-- Inscripciones: relacion estudiante-asignatura por temporada
+DROP TABLE IF EXISTS inscripciones;
+CREATE TABLE inscripciones (
+  id TEXT PRIMARY KEY,
+  estudiante_id TEXT NOT NULL,
+  asignatura_id TEXT NOT NULL,
+  temporada_id TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
+  FOREIGN KEY (asignatura_id) REFERENCES asignaturas(id) ON DELETE CASCADE,
+  FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
+  UNIQUE(estudiante_id, asignatura_id, temporada_id)
+);
+
+-- Asignaciones de seccion: resultado del sorting
+DROP TABLE IF EXISTS asignaciones_seccion;
+CREATE TABLE asignaciones_seccion (
+  id TEXT PRIMARY KEY,
+  estudiante_id TEXT NOT NULL,
+  seccion_id TEXT NOT NULL,
+  asignatura_id TEXT NOT NULL,
+  temporada_id TEXT NOT NULL,
+  manual INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
+  FOREIGN KEY (seccion_id) REFERENCES secciones(id) ON DELETE CASCADE,
+  FOREIGN KEY (asignatura_id) REFERENCES asignaturas(id) ON DELETE CASCADE,
+  FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
+  UNIQUE(estudiante_id, asignatura_id, temporada_id)
+);
+
 -- Tokens API para autenticacion del solver externo
 DROP TABLE IF EXISTS solver_api_tokens;
 CREATE TABLE solver_api_tokens (
@@ -639,3 +690,13 @@ CREATE INDEX IF NOT EXISTS idx_commits_branch ON horario_commits(branch_id);
 CREATE INDEX IF NOT EXISTS idx_asignaciones_commit ON horario_asignaciones(commit_id);
 CREATE INDEX IF NOT EXISTS idx_asignaciones_sesion ON horario_asignaciones(sesion_id);
 CREATE INDEX IF NOT EXISTS idx_tokens_token ON solver_api_tokens(token);
+
+-- Student Sorting
+CREATE INDEX IF NOT EXISTS idx_estudiantes_carrera ON estudiantes(carrera_id);
+CREATE INDEX IF NOT EXISTS idx_estudiantes_nivel ON estudiantes(nivel_id);
+CREATE INDEX IF NOT EXISTS idx_inscripciones_estudiante ON inscripciones(estudiante_id);
+CREATE INDEX IF NOT EXISTS idx_inscripciones_asignatura ON inscripciones(asignatura_id, temporada_id);
+CREATE INDEX IF NOT EXISTS idx_inscripciones_temporada ON inscripciones(temporada_id);
+CREATE INDEX IF NOT EXISTS idx_asig_seccion_estudiante ON asignaciones_seccion(estudiante_id, temporada_id);
+CREATE INDEX IF NOT EXISTS idx_asig_seccion_seccion ON asignaciones_seccion(seccion_id);
+CREATE INDEX IF NOT EXISTS idx_asig_seccion_asignatura ON asignaciones_seccion(asignatura_id, temporada_id);

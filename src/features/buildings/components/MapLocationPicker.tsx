@@ -83,7 +83,7 @@ export function MapLocationPicker({ lat, lng, onLocationChange, className = '' }
       </MapContainer>
       <div className="bg-gray-50 px-4 py-2 text-sm text-gray-600 border-t">
         <p>
-          <span className="font-semibold">Coordenadas:</span> {lat.toFixed(6)}, {lng.toFixed(6)}
+          <span className="font-semibold">Coordenadas:</span> {Number(lat).toFixed(6)}, {Number(lng).toFixed(6)}
         </p>
         <p className="text-xs mt-1 text-gray-500">
           Haz click en el mapa o arrastra el marcador para cambiar la ubicación

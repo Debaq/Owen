@@ -1,0 +1,569 @@
+<h1>Documento de Proyecto — Sistema OWEN</h1>
+<p><strong>Fecha de revisión:</strong> 30 de marzo de 2026
+<strong>URL de producción:</strong> <a href="https://tmeduca.org/owen/">https://tmeduca.org/owen/</a>
+<strong>Estado general:</strong> MVP funcional con datos de prueba, varios módulos pendientes de implementación</p>
+<hr>
+<h2>1. Descripción General</h2>
+<p>Sistema OWEN es una plataforma web de gestión de horarios institucional para un campus universitario en Puerto Montt, Chile. Permite administrar salas, edificios, docentes, carreras y bloques horarios, con un portal público para que cualquier persona consulte disponibilidad de salas y explore el campus en un mapa interactivo.</p>
+<hr>
+<h2>2. Portal Público (sin autenticación)</h2>
+<h3>2.1 Página Principal</h3>
+<p><strong>Captura:</strong> <code>01_public_home.png</code>, <code>01_home.png</code></p>
+<p>La página de inicio presenta tres secciones principales:</p>
+<ul>
+<li><strong>Buscador de Salas y Horarios:</strong> Dos modos de búsqueda:<ul>
+<li><em>Por Sala:</em> Campo de texto para buscar por código, nombre o edificio, con filtros rápidos por tipo (Aula, Laboratorio, Auditorio, Taller, Sala Reuniones, Oficina, Biblioteca, Medioteca) y botón &quot;Buscar&quot;.</li>
+<li><em>Por Carrera/Nivel:</em> Selectores desplegables de Carrera y Nivel.</li>
+</ul>
+</li>
+<li><strong>Lugares de Interés:</strong> Enlace para encontrar secretarías, casinos, bibliotecas, estacionamientos, con botón &quot;Explorar Campus&quot;.</li>
+<li><strong>Mapa del Campus:</strong> Mapa interactivo (Leaflet + OpenStreetMap) con marcadores azules en los edificios, leyenda de estado de salas (Disponible/Ocupada), y control de capas.</li>
+</ul>
+<p><strong>Observaciones:</strong></p>
+<ul>
+<li>Al buscar &quot;Laboratorio&quot; se muestra &quot;No se encontraron salas&quot; — posiblemente no hay laboratorios registrados en los datos de prueba.</li>
+<li>El mapa muestra correctamente la ubicación costera del campus con edificios numerados (100, 400, 500, etc.).</li>
+<li>El footer incluye &quot;Sistema OWEN - Sede Puerto Montt, Chile&quot; y enlace &quot;Reportar observación&quot;.</li>
+</ul>
+<h3>2.2 Reportar Observación</h3>
+<p><strong>Captura:</strong> <code>06_reportar_observacion.png</code></p>
+<p>Página <code>/report</code> muestra solo el título &quot;Reportar Observación&quot; con contenido vacío. <strong>El formulario de observaciones no está implementado.</strong></p>
+<h3>2.3 Login</h3>
+<p><strong>Captura:</strong> <code>07_login_page.png</code></p>
+<p>Formulario limpio y centrado en la pantalla con:</p>
+<ul>
+<li>Campo Email (placeholder: <a href="mailto:usuario@ejemplo.cl">usuario@ejemplo.cl</a>)</li>
+<li>Campo Contraseña</li>
+<li>Botón &quot;Iniciar sesión&quot;</li>
+<li>Título &quot;Sistema OWEN — Sistema de Gestión de Horarios&quot;</li>
+</ul>
+<hr>
+<h2>3. Panel de Administración</h2>
+<h3>3.1 Estructura de Navegación (Sidebar)</h3>
+<p>El panel usa un sidebar lateral izquierdo con la siguiente estructura:</p>
+<pre><code>Panel Principal
+Horarios
+Asistente Horarios
+
+GESTIÓN FÍSICA
+├── Edificios
+├── Salas
+└── Mapa del Campus
+
+GESTIÓN ACADÉMICA
+├── Carreras
+├── Unidades
+└── Docentes
+
+SISTEMA
+├── Bloques Horarios
+├── Solicitudes
+├── Observaciones
+├── Reportes
+└── Configuración
+</code></pre>
+<p>Header superior: Logo &quot;Sistema OWEN&quot; + subtítulo genérico &quot;Sistema de horarios tipo W para Escuela tipo N&quot; + selector de idioma (ES) + nombre de usuario (Administrador/Gestor) + botón &quot;Cerrar Sesión&quot;.</p>
+<h3>3.2 Dashboard (Panel Principal)</h3>
+<p><strong>Captura:</strong> <code>01_dashboard.png</code></p>
+<p>Contadores principales en cards:</p>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Salas</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Edificios</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Docentes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Carreras</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Horarios</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Asignaturas</td>
+<td>1</td>
+</tr>
+</tbody></table>
+<p>Widgets:</p>
+<ul>
+<li><strong>Ocupación de hoy:</strong> 0% (0 de X salas ocupadas ahora)</li>
+<li><strong>Solicitudes recientes:</strong> Sin solicitudes</li>
+<li><strong>Últimos horarios creados:</strong> Sin horarios registrados</li>
+<li><strong>Salas por tipo:</strong> Funcional pero con pocos datos</li>
+<li><strong>Versionado de horarios:</strong> Sin versionado (feature planificada con modelo tipo Git: branches, commits, diff, merge)</li>
+</ul>
+<p><strong>Accesos rápidos:</strong> Horarios, Salas, Solicitudes, Mapa, Asistente de horarios, Solver, Reportes.</p>
+<h3>3.3 Horarios</h3>
+<p><strong>Captura:</strong> <code>02_horarios.png</code>, <code>03_horarios_scroll.png</code></p>
+<p>Vista de grilla semanal con:</p>
+<ul>
+<li><strong>Filtros por vista:</strong> Por Sala | Por Docente | Por Nivel | Por Asignatura</li>
+<li><strong>Selector de sala:</strong> Dropdown (ej: &quot;501 - 501&quot;)</li>
+<li><strong>Grilla:</strong> Columnas Lun-Vie, filas por bloque horario (Bloque 1 a 7+, cada uno con su rango de horas)</li>
+<li><strong>Botones &quot;+&quot;</strong> en cada celda para agregar un horario</li>
+<li><strong>Leyenda:</strong> Asignatura, Docente, Sala, &quot;Click para ver detalles&quot;</li>
+<li><strong>Estado actual:</strong> 0 clases programadas</li>
+</ul>
+<h3>3.4 Asistente de Horarios (Wizard)</h3>
+<p><strong>Captura:</strong> <code>04_asistente_horarios.png</code>, <code>19_wizard_detalle.png</code></p>
+<p>Wizard paso a paso para crear horarios:</p>
+<ul>
+<li><strong>Paso 1 — Seleccionar sala:</strong> Lista de salas con búsqueda por código, nombre o edificio. Muestra: código, tipo (Aula), nombre, capacidad. Botón &quot;+ Nueva Sala&quot; para crear una nueva.</li>
+<li>Salas disponibles: 501 (cap. 30), 508 (cap. 30), 507 (cap. 30), 101 (cap. 30)</li>
+<li>Navegación: botones &quot;Atrás&quot; / &quot;Siguiente&quot;</li>
+<li>Enlace a &quot;Vista clásica&quot; (la grilla normal de horarios)</li>
+</ul>
+<h3>3.5 Edificios</h3>
+<p><strong>Captura:</strong> <code>05_edificios.png</code>, <code>17_edificio_crear_form.png</code></p>
+<p>Cards por edificio con:</p>
+<ul>
+<li>Espacio para foto (vacío en los 3 edificios)</li>
+<li>Código numérico (100, 400, 500)</li>
+<li>Descripción (ej: edificio 400 tiene descripción sobre primer piso)</li>
+<li>Contadores: X pisos, X aulas, X metros cuadrados</li>
+<li>Botones: Editar, Eliminar</li>
+<li>Botón &quot;Nuevo Edificio&quot; en la esquina superior</li>
+</ul>
+<p><strong>Formulario de nuevo edificio (modal):</strong></p>
+<ul>
+<li>Nombre del Edificio, Código</li>
+<li>Número de Pisos</li>
+<li>Descripción (opcional)</li>
+<li>Fotos del Edificio (carga de imágenes)</li>
+<li>Ubicación en el Campus (mapa interactivo para posicionar)</li>
+</ul>
+<h3>3.6 Gestión de Salas</h3>
+<p><strong>Captura:</strong> <code>06_salas.png</code>, <code>18_sala_crear_form.png</code></p>
+<p>Cards por sala con:</p>
+<ul>
+<li>Espacio para foto</li>
+<li>Código (501, 508, 507, 101, 161)</li>
+<li>Tipo + capacidad</li>
+<li>Estado de gestión (ej: &quot;gestión central&quot;)</li>
+<li>Ícono de proyector/equipamiento</li>
+<li>Cantidad de metros cuadrados</li>
+<li>Enlace &quot;Ver público&quot; (vista pública de horario)</li>
+<li>Botón QR</li>
+<li>Barra superior: Filtros, Ver inactivas, Imprimir QR, Nueva Sala</li>
+</ul>
+<p><strong>Formulario de nueva sala (modal):</strong></p>
+<ul>
+<li>Código*, Nombre*, Edificio* (select), Piso*</li>
+<li>Tipo de Sala* (Aula, Lab, etc.), Capacidad*</li>
+<li>Tipo de Mobiliario, Equipamiento (checkboxes: Pizarra, Proyector, +)</li>
+<li>Sección &quot;Gestión y Administración&quot;: Nivel de gestión (Central por defecto)</li>
+<li>Fotos de la Sala</li>
+</ul>
+<h3>3.7 Mapa del Campus (Admin)</h3>
+<p><strong>Captura:</strong> <code>07_mapa_admin.png</code></p>
+<p>Mapa interactivo completo con:</p>
+<ul>
+<li>Marcadores de edificios (100, 400, 500, etc.)</li>
+<li>Botón &quot;Herramientas&quot; (funciones de administración del mapa)</li>
+<li>Control de capas del mapa</li>
+<li>Leyenda de estado de salas (Disponible verde, Ocupada rojo)</li>
+<li>Zoom y controles de navegación</li>
+</ul>
+<h3>3.8 Carreras</h3>
+<p><strong>Captura:</strong> <code>08_carreras.png</code></p>
+<p>Layout master-detail:</p>
+<ul>
+<li>Panel izquierdo: lista de carreras con búsqueda y botón &quot;+&quot;</li>
+<li>Panel derecho: detalle de la carrera seleccionada (niveles, asignaturas)</li>
+<li>Datos de prueba: 1 carrera &quot;Ped&quot; (IEPE)</li>
+<li>Estado vacío: &quot;Seleccione una carrera — Gestione el personal académico, niveles y asignaturas por carrera&quot;</li>
+</ul>
+<h3>3.9 Unidades Académicas</h3>
+<p><strong>Captura:</strong> <code>09_unidades.png</code></p>
+<p>Layout master-detail similar a Carreras:</p>
+<ul>
+<li>Búsqueda + botón &quot;+&quot;</li>
+<li><strong>Vacío:</strong> &quot;No se encontraron unidades&quot;</li>
+<li>Estado vacío: &quot;Seleccione una unidad académica para gestionar su personal y directiva&quot;</li>
+</ul>
+<h3>3.10 Docentes</h3>
+<p><strong>Captura:</strong> <code>10_docentes.png</code></p>
+<p>Layout master-detail:</p>
+<ul>
+<li>Panel izquierdo: lista de docentes con búsqueda y botón &quot;+&quot;</li>
+<li>Agrupación &quot;ACTIVOS INACTIVOS&quot;</li>
+<li>1 docente de prueba: &quot;Brígida Urrutia Rubilar&quot; (RUT 123456778)</li>
+<li>Estado vacío derecho: &quot;Gestión de Docentes — Seleccione un docente de la lista para gestionar su perfil, disponibilidad y carga académica&quot;</li>
+</ul>
+<h3>3.11 Bloques Horarios</h3>
+<p><strong>Captura:</strong> <code>11_bloques_horarios.png</code></p>
+<p>Gestión de sistemas de bloques horarios:</p>
+<ul>
+<li>Panel izquierdo: lista de sistemas (&quot;Vespertino&quot;, &quot;otro regimen&quot;) con botón &quot;+&quot;</li>
+<li>Grilla principal: Lun-Vie con todos los bloques definidos</li>
+<li><strong>Sistema Vespertino:</strong> 9+ bloques diarios, desde 08:10 hasta 16:20+</li>
+<li>Cada bloque muestra hora inicio — hora fin (ej: Bloque 1: 08:10-08:55)</li>
+<li>Botones superiores: Temporadas, Generador Masivo</li>
+</ul>
+<h3>3.12 Solicitudes</h3>
+<p><strong>Captura:</strong> <code>12_solicitudes.png</code></p>
+<p>Gestión de solicitudes de sala:</p>
+<ul>
+<li>Título: &quot;Gestión de Solicitudes — Revisa, aprueba o rechaza solicitudes de sala&quot;</li>
+<li>Contador: &quot;0 solicitudes&quot;</li>
+<li>Filtro dropdown: &quot;Todas&quot;</li>
+<li>Botón &quot;+ Nueva Solicitud&quot;</li>
+<li>Estado: &quot;No hay solicitudes&quot;</li>
+</ul>
+<h3>3.13 Observaciones</h3>
+<p><strong>Captura:</strong> <code>13_observaciones.png</code></p>
+<p>Página con solo el título &quot;Observaciones&quot;. <strong>Sin contenido implementado.</strong> Se espera que aquí se gestionen los tickets de observación creados vía QR desde el portal público.</p>
+<h3>3.14 Reportes</h3>
+<p><strong>Captura:</strong> <code>14_reportes.png</code></p>
+<p>Generación de reportes con:</p>
+<ul>
+<li>Botones de exportación: PDF, Excel</li>
+<li>Tipos de reporte: Por Sala | Por Docente | Por Nivel | Por Asignatura</li>
+<li>Selector según tipo (ej: &quot;Seleccionar sala...&quot;)</li>
+<li>Vista Previa: &quot;Seleccione un filtro para ver la vista previa&quot;</li>
+</ul>
+<h3>3.15 Configuración</h3>
+<p><strong>Captura:</strong> <code>15_configuracion.png</code>, <code>16_configuracion_scroll.png</code></p>
+<p>Tabs: General | Notificaciones | Área Pública | QR</p>
+<p><strong>Tab General:</strong></p>
+<ul>
+<li><strong>Identidad del Sitio:</strong> Nombre del sistema (&quot;Sistema OWEN&quot;), Subtítulo (&quot;Sistema de Horarios - Sede Puerto Montt&quot;), Título de pestaña del navegador</li>
+<li><strong>Mapa y Navegación:</strong> Trazado automático de rutas peatonales con OpenRouteService. Enlace a consola de desarrolladores de OpenRouteService. API Key configurable</li>
+<li><strong>Módulos del Sistema:</strong> Toggle para &quot;Generador de Horarios (Solver)&quot; con descripción de funcionalidad</li>
+<li><strong>Base de Datos:</strong> Botón &quot;Ejecutar Migraciones&quot; para actualizar la estructura de la BD</li>
+</ul>
+<hr>
+<h2>4. Datos de Prueba Actuales</h2>
+<table>
+<thead>
+<tr>
+<th>Entidad</th>
+<th>Cantidad</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Edificios</td>
+<td>3</td>
+<td>Códigos 100, 400, 500</td>
+</tr>
+<tr>
+<td>Salas</td>
+<td>4-5</td>
+<td>501, 508, 507, 101, 161 (todas Aula, cap. 30)</td>
+</tr>
+<tr>
+<td>Carreras</td>
+<td>1</td>
+<td>&quot;Ped&quot; (IEPE)</td>
+</tr>
+<tr>
+<td>Docentes</td>
+<td>1</td>
+<td>Brígida Urrutia Rubilar</td>
+</tr>
+<tr>
+<td>Horarios</td>
+<td>0</td>
+<td>Ninguno creado</td>
+</tr>
+<tr>
+<td>Solicitudes</td>
+<td>0</td>
+<td>Ninguna</td>
+</tr>
+<tr>
+<td>Unidades</td>
+<td>0</td>
+<td>Ninguna</td>
+</tr>
+<tr>
+<td>Sistemas de bloques</td>
+<td>2</td>
+<td>&quot;Vespertino&quot;, &quot;otro regimen&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. Funcionalidades Implementadas vs. Pendientes</h2>
+<h3>Implementadas (funcionales)</h3>
+<ul>
+<li>Login/Logout con sesiones PHP</li>
+<li>Dashboard con contadores y widgets</li>
+<li>CRUD Edificios (crear, editar, eliminar, con fotos y ubicación en mapa)</li>
+<li>CRUD Salas (crear con equipamiento, tipo, gestión, QR, vista pública)</li>
+<li>Gestión de Carreras (master-detail)</li>
+<li>Gestión de Docentes (master-detail)</li>
+<li>Gestión de Unidades Académicas (master-detail, sin datos)</li>
+<li>Grilla de horarios semanal (por sala, docente, nivel, asignatura)</li>
+<li>Asistente de horarios paso a paso (wizard)</li>
+<li>Bloques horarios con múltiples sistemas y generador masivo</li>
+<li>Mapa interactivo del campus con marcadores, capas, herramientas admin</li>
+<li>Reportes con exportación PDF/Excel</li>
+<li>Configuración del sistema (identidad, mapa, módulos, migraciones)</li>
+<li>Portal público con búsqueda de salas y mapa</li>
+<li>Soporte i18n (ES/EN)</li>
+<li>Generación de QR para salas</li>
+</ul>
+<h3>Parcialmente implementadas</h3>
+<ul>
+<li>Solicitudes de sala (UI existe, sin datos ni flujo LLM)</li>
+<li>Vista pública de horarios por sala (enlace existe)</li>
+</ul>
+<h3>Pendientes / No implementadas</h3>
+<ul>
+<li><strong>Observaciones vía QR:</strong> Página vacía tanto en admin como en público (<code>/report</code>)</li>
+<li><strong>Integración LLM:</strong> Auto-gestión de solicitudes con Claude API</li>
+<li><strong>Versionado de horarios:</strong> Modelo tipo Git (branches, commits, diff, merge)</li>
+<li><strong>Solver/Generador automático:</strong> App Tauri con HiGHS (proyecto separado)</li>
+<li><strong>Liberación de clases</strong> por dirección de carrera</li>
+<li><strong>Rol Dirección:</strong> Vistas limitadas para direcciones de carrera</li>
+<li><strong>Detección de conflictos</strong> al crear horarios</li>
+<li><strong>Calendario</strong> con feriados</li>
+<li><strong>Links públicos compartibles</strong></li>
+<li><strong>Notificaciones</strong> (tab en configuración sin contenido visible)</li>
+<li><strong>Fotos de edificios</strong> (espacios vacíos en todos los edificios)</li>
+</ul>
+<hr>
+<h2>6. Observaciones de UX/UI</h2>
+<h3>Positivo</h3>
+<ul>
+<li>Diseño limpio y moderno con Tailwind + Shadcn/ui</li>
+<li>Sidebar bien organizado por categorías (Gestión Física, Académica, Sistema)</li>
+<li>Formularios modales completos con validación</li>
+<li>Mapa interactivo bien integrado con OpenStreetMap</li>
+<li>Dashboard informativo con métricas relevantes</li>
+<li>Sistema responsive (viewport 1920x1080 revisado)</li>
+</ul>
+<h3>A mejorar</h3>
+<ul>
+<li><strong>Subtítulo genérico:</strong> &quot;Sistema de horarios tipo W para Escuela tipo N&quot; debería ser personalizado</li>
+<li><strong>Fotos de edificios:</strong> Todos vacíos, afecta la presentación visual</li>
+<li><strong>Página de reportar observación:</strong> Completamente vacía, sin formulario</li>
+<li><strong>Observaciones admin:</strong> Página vacía sin funcionalidad</li>
+<li><strong>Datos de prueba escasos:</strong> Solo 1 docente, 1 carrera, 0 horarios — dificulta evaluar la experiencia real</li>
+<li><strong>Resultados de búsqueda pública:</strong> Buscar &quot;Laboratorio&quot; no encuentra nada (no hay labs cargados)</li>
+</ul>
+<hr>
+<h2>7. Arquitectura de URLs</h2>
+<h3>Público</h3>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Descripción</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/owen/</code></td>
+<td>Portal público (búsqueda + mapa)</td>
+</tr>
+<tr>
+<td><code>/owen/login</code></td>
+<td>Formulario de login</td>
+</tr>
+<tr>
+<td><code>/owen/report</code></td>
+<td>Reportar observación (pendiente)</td>
+</tr>
+</tbody></table>
+<h3>Admin (requiere autenticación)</h3>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Descripción</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/owen/admin/dashboard</code></td>
+<td>Panel principal</td>
+</tr>
+<tr>
+<td><code>/owen/admin/schedules</code></td>
+<td>Grilla de horarios</td>
+</tr>
+<tr>
+<td><code>/owen/admin/schedule-wizard</code></td>
+<td>Asistente paso a paso</td>
+</tr>
+<tr>
+<td><code>/owen/admin/buildings</code></td>
+<td>Gestión de edificios</td>
+</tr>
+<tr>
+<td><code>/owen/admin/rooms</code></td>
+<td>Gestión de salas</td>
+</tr>
+<tr>
+<td><code>/owen/admin/map</code></td>
+<td>Mapa del campus</td>
+</tr>
+<tr>
+<td><code>/owen/admin/academic/carreras</code></td>
+<td>Carreras</td>
+</tr>
+<tr>
+<td><code>/owen/admin/academic/unidades</code></td>
+<td>Unidades académicas</td>
+</tr>
+<tr>
+<td><code>/owen/admin/academic/docentes</code></td>
+<td>Docentes</td>
+</tr>
+<tr>
+<td><code>/owen/admin/system/bloques</code></td>
+<td>Bloques horarios</td>
+</tr>
+<tr>
+<td><code>/owen/admin/requests</code></td>
+<td>Solicitudes</td>
+</tr>
+<tr>
+<td><code>/owen/admin/observations</code></td>
+<td>Observaciones</td>
+</tr>
+<tr>
+<td><code>/owen/admin/reports</code></td>
+<td>Reportes</td>
+</tr>
+<tr>
+<td><code>/owen/admin/settings</code></td>
+<td>Configuración</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. Capturas de Referencia</h2>
+<p>Las capturas se encuentran en la carpeta <code>screenshots/</code> del proyecto:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Archivo</th>
+<th>Descripción</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>—</td>
+<td><code>01_public_home.png</code></td>
+<td>Portal público completo</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>02_busqueda_aula.png</code></td>
+<td>Búsqueda por sala</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>03_resultados_laboratorio.png</code></td>
+<td>Resultados vacíos</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>04_tab_por_carrera.png</code></td>
+<td>Búsqueda por carrera/nivel</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>05_explorar_campus.png</code></td>
+<td>Vista mapa expandido</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>07_login_page.png</code></td>
+<td>Formulario de login</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>01_dashboard.png</code></td>
+<td>Dashboard admin</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>02_horarios.png</code></td>
+<td>Grilla de horarios</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>04_asistente_horarios.png</code></td>
+<td>Wizard de horarios</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>05_edificios.png</code></td>
+<td>Cards de edificios</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>06_salas.png</code></td>
+<td>Cards de salas</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>07_mapa_admin.png</code></td>
+<td>Mapa admin</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>08_carreras.png</code></td>
+<td>Gestión de carreras</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>09_unidades.png</code></td>
+<td>Unidades académicas</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>10_docentes.png</code></td>
+<td>Gestión de docentes</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>11_bloques_horarios.png</code></td>
+<td>Bloques horarios</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>12_solicitudes.png</code></td>
+<td>Solicitudes</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>13_observaciones.png</code></td>
+<td>Observaciones</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>14_reportes.png</code></td>
+<td>Reportes</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>15_configuracion.png</code></td>
+<td>Configuración</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>17_edificio_crear_form.png</code></td>
+<td>Formulario crear edificio</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>18_sala_crear_form.png</code></td>
+<td>Formulario crear sala</td>
+</tr>
+</tbody></table>

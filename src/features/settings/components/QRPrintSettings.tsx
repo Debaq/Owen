@@ -180,7 +180,7 @@ export function QRPrintSettings({ config, onChange }: Props) {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm">Texto de instrucci\u00f3n</p>
+                <p className="text-sm">Texto de instrucción</p>
                 <p className="text-xs text-muted-foreground">Texto debajo del QR</p>
               </div>
               <Switch

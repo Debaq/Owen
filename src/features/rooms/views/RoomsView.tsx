@@ -19,6 +19,7 @@ import {
   createRoom,
   updateRoom,
   deleteRoom,
+  activateRoom,
 } from '../services/roomService'
 
 type ModalMode = 'create' | 'edit' | 'view' | null
@@ -48,6 +49,17 @@ export function RoomsView() {
   const handleRoomEdit = (room: RoomWithBuilding) => {
     setSelectedRoom(room)
     setModalMode('edit')
+  }
+
+  // Handler para reactivar sala
+  const handleRoomActivate = async (room: RoomWithBuilding) => {
+    try {
+      await activateRoom(room.id)
+      toast.success(`Sala ${room.code} reactivada correctamente`)
+      setRefreshTrigger((prev) => prev + 1)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al reactivar sala')
+    }
   }
 
   // Handler para iniciar eliminación
@@ -116,6 +128,7 @@ export function RoomsView() {
         onRoomView={handleRoomView}
         onRoomEdit={handleRoomEdit}
         onRoomDelete={handleRoomDelete}
+        onRoomActivate={handleRoomActivate}
         onCreateNew={handleCreateNew}
         onPrintQR={(rooms) => setQrRooms(rooms)}
         showActions={true}
@@ -174,7 +187,7 @@ export function RoomsView() {
                 <div>
                   <p className="text-sm text-muted-foreground">Coordenadas</p>
                   <p className="font-medium text-xs">
-                    {selectedRoom.lat.toFixed(5)}, {selectedRoom.lng.toFixed(5)}
+                    {Number(selectedRoom.lat).toFixed(5)}, {Number(selectedRoom.lng).toFixed(5)}
                   </p>
                 </div>
                 <div>

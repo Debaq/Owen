@@ -109,7 +109,7 @@ export function RoomSearchBar({ excludeRoomId, onSelect, selectedRoom, onClear }
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+        <div className="absolute z-[9999] w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
           {results.map(room => (
             <button
               key={room.id}
@@ -132,7 +132,7 @@ export function RoomSearchBar({ excludeRoomId, onSelect, selectedRoom, onClear }
       )}
 
       {showResults && query.trim() && !searching && results.length === 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-sm text-gray-500">
+        <div className="absolute z-[9999] w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-sm text-gray-500">
           No se encontraron salas
         </div>
       )}

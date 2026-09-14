@@ -1,4 +1,4 @@
-import { Marker, Popup, Tooltip } from 'react-leaflet';
+import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import type { Edificio } from '@/shared/types/models';
 import type { Sala } from '@/shared/types/models';
@@ -12,6 +12,7 @@ interface BuildingMarkerProps {
 }
 
 export function BuildingMarker({ edificio, salas = [], pois = [] }: BuildingMarkerProps) {
+  const map = useMap();
   // Filtrar salas y POIs de este edificio
   const salasEdificio = salas.filter(s => s.edificio_id === edificio.id);
   const poisEdificio = pois.filter(p => p.edificio_id === edificio.id);
@@ -61,7 +62,11 @@ export function BuildingMarker({ edificio, salas = [], pois = [] }: BuildingMark
   };
 
   return (
-    <Marker position={[edificio.lat, edificio.lng]} icon={icon}>
+    <Marker
+      position={[edificio.lat, edificio.lng]}
+      icon={icon}
+      eventHandlers={{ click: () => map.flyTo([edificio.lat, edificio.lng], Math.max(map.getZoom(), 18), { duration: 0.5 }) }}
+    >
       <Tooltip permanent direction="top" offset={[0, -20]} className="building-tooltip">
         <div className="text-center">
           <div className="font-bold text-sm">{edificio.name}</div>

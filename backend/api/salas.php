@@ -15,7 +15,8 @@ switch ($method) {
 }
 
 function handleGet($pdo) {
-    $sql = "SELECT * FROM salas WHERE activo = 1";
+    $includeInactive = isset($_GET['include_inactive']) && $_GET['include_inactive'] === 'true';
+    $sql = $includeInactive ? "SELECT * FROM salas" : "SELECT * FROM salas WHERE activo = 1";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $salas = $stmt->fetchAll();
@@ -68,7 +69,7 @@ function handlePost($pdo) {
         }
     } catch (\PDOException $e) {
         if ($e->getCode() == 23000) {
-            jsonResponse(['error' => 'Room code already exists'], 409);
+            jsonResponse(['error' => 'El código de sala ya existe. Usa un código diferente o revisa las salas inactivas.'], 409);
         }
         securityLog('DB_ERROR', $e->getMessage());
         jsonResponse(['error' => 'Error interno del servidor'], 500);

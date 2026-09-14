@@ -53,9 +53,28 @@ function handleDelete($pdo) {
     $id = $_GET['id'] ?? '';
     if (!$id) jsonResponse(['error' => 'ID requerido'], 400);
 
-    // No borrar el default
-    $stmt = $pdo->prepare("DELETE FROM sistemas_bloques WHERE id = ? AND es_default = 0");
+    // Verificar que no sea default
+    $stmt = $pdo->prepare("SELECT es_default FROM sistemas_bloques WHERE id = ?");
     $stmt->execute([$id]);
-    jsonResponse(['success' => true, 'message' => 'Eliminado']);
+    $sys = $stmt->fetch();
+    if (!$sys) jsonResponse(['error' => 'Sistema no encontrado'], 404);
+    if ($sys['es_default']) jsonResponse(['error' => 'No se puede eliminar el sistema por defecto'], 400);
+
+    // Verificar que no tenga temporadas asociadas
+    $stmt = $pdo->prepare("SELECT id, nombre FROM temporadas WHERE sistema_bloque_id = ?");
+    $stmt->execute([$id]);
+    $temp = $stmt->fetch();
+    if ($temp) {
+        jsonResponse(['error' => 'No se puede eliminar: lo usa la temporada "' . $temp['nombre'] . '"'], 400);
+    }
+
+    // Borrar bloques del sistema primero, luego el sistema
+    $stmt = $pdo->prepare("DELETE FROM bloques_horarios WHERE sistema_bloque_id = ?");
+    $stmt->execute([$id]);
+
+    $stmt = $pdo->prepare("DELETE FROM sistemas_bloques WHERE id = ?");
+    $stmt->execute([$id]);
+
+    jsonResponse(['success' => true, 'message' => 'Sistema y sus bloques eliminados']);
 }
 ?>

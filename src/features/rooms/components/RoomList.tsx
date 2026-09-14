@@ -14,12 +14,13 @@ import { RoomCard } from './RoomCard'
 import type { RoomWithBuilding, RoomFilters } from '../services/roomService'
 import { filterRooms, getRoomsWithBuildings, getAllBuildings } from '../services/roomService'
 import type { Edificio } from '@/shared/types'
-import { Search, Filter, X, Plus, QrCode } from 'lucide-react'
+import { Search, Filter, X, Plus, QrCode, Archive, Building } from 'lucide-react'
 
 interface RoomListProps {
   onRoomView?: (room: RoomWithBuilding) => void
   onRoomEdit?: (room: RoomWithBuilding) => void
   onRoomDelete?: (room: RoomWithBuilding) => void
+  onRoomActivate?: (room: RoomWithBuilding) => void
   onCreateNew?: () => void
   onPrintQR?: (rooms: RoomWithBuilding[]) => void
   showActions?: boolean
@@ -29,6 +30,7 @@ export function RoomList({
   onRoomView,
   onRoomEdit,
   onRoomDelete,
+  onRoomActivate,
   onCreateNew,
   onPrintQR,
   showActions = true,
@@ -193,6 +195,15 @@ export function RoomList({
             )}
           </Button>
 
+          <Button
+            variant={filters.activo === false ? 'default' : 'outline'}
+            onClick={() => setFilters(prev => ({ ...prev, activo: prev.activo === false ? true : false }))}
+            className={filters.activo === false ? 'bg-amber-600 hover:bg-amber-700' : ''}
+          >
+            <Archive className="h-4 w-4 mr-2" />
+            {filters.activo === false ? 'Mostrando inactivas' : 'Ver inactivas'}
+          </Button>
+
           {onPrintQR && filteredRooms.length > 0 && (
             <Button variant="outline" onClick={() => onPrintQR(filteredRooms)}>
               <QrCode className="h-4 w-4 mr-2" />
@@ -334,7 +345,7 @@ export function RoomList({
         </span>
       </div>
 
-      {/* Grid de salas */}
+      {/* Salas agrupadas por edificio */}
       {isLoading ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando salas...</p>
@@ -353,17 +364,43 @@ export function RoomList({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              room={room}
-              onView={onRoomView}
-              onEdit={onRoomEdit}
-              onDelete={onRoomDelete}
-              showActions={showActions}
-            />
-          ))}
+        <div className="space-y-6">
+          {(() => {
+            const grouped = new Map<string, { edificio: Edificio | undefined; rooms: RoomWithBuilding[] }>()
+            filteredRooms.forEach(room => {
+              const key = room.edificio_id || '_sin_edificio'
+              if (!grouped.has(key)) {
+                grouped.set(key, { edificio: room.edificio, rooms: [] })
+              }
+              grouped.get(key)!.rooms.push(room)
+            })
+            return Array.from(grouped.entries())
+              .sort(([, a], [, b]) => (a.edificio?.name || 'ZZZ').localeCompare(b.edificio?.name || 'ZZZ'))
+              .map(([key, { edificio, rooms }]) => (
+                <div key={key}>
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b">
+                    <Building className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-semibold text-lg">
+                      {edificio ? `${edificio.code} — ${edificio.name}` : 'Sin edificio'}
+                    </h3>
+                    <Badge variant="outline" className="ml-auto">{rooms.length}</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {rooms.map(room => (
+                      <RoomCard
+                        key={room.id}
+                        room={room}
+                        onView={onRoomView}
+                        onEdit={onRoomEdit}
+                        onDelete={onRoomDelete}
+                        onActivate={onRoomActivate}
+                        showActions={showActions}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+          })()}
         </div>
       )}
     </div>

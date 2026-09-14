@@ -1,4 +1,4 @@
-import { Marker, Popup, Tooltip } from 'react-leaflet';
+import { Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import type { POI } from '../types';
 import { getPOICategoryConfig } from '../types';
@@ -11,6 +11,7 @@ interface POIMarkerProps {
 }
 
 export function POIMarker({ poi, canEdit, onEdit, onDelete }: POIMarkerProps) {
+  const map = useMap();
   const config = getPOICategoryConfig(poi.category);
   const iconEmoji = poi.icon || config.icon;
   const markerColor = poi.color || config.color;
@@ -38,7 +39,11 @@ export function POIMarker({ poi, canEdit, onEdit, onDelete }: POIMarkerProps) {
   });
 
   return (
-    <Marker position={[poi.lat, poi.lng]} icon={icon}>
+    <Marker
+      position={[poi.lat, poi.lng]}
+      icon={icon}
+      eventHandlers={{ click: () => map.flyTo([poi.lat, poi.lng], Math.max(map.getZoom(), 18), { duration: 0.5 }) }}
+    >
       <Tooltip permanent direction="top" offset={[0, -16]} className="poi-tooltip">
         <span className="text-xs font-semibold">{poi.name}</span>
       </Tooltip>

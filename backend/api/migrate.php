@@ -54,6 +54,14 @@ if (!columnExists($pdo, 'salas', 'tipo_mobiliario')) {
     $results[] = '[=] salas.tipo_mobiliario (ya existe)';
 }
 
+// temporadas.sistema_bloque_id
+if (!columnExists($pdo, 'temporadas', 'sistema_bloque_id')) {
+    $pdo->exec("ALTER TABLE temporadas ADD COLUMN sistema_bloque_id TEXT DEFAULT NULL REFERENCES sistemas_bloques(id) ON DELETE SET NULL");
+    $results[] = '[+] temporadas.sistema_bloque_id';
+} else {
+    $results[] = '[=] temporadas.sistema_bloque_id (ya existe)';
+}
+
 // solicitudes.mobiliario_requerido
 if (!columnExists($pdo, 'solicitudes', 'mobiliario_requerido')) {
     $pdo->exec("ALTER TABLE solicitudes ADD COLUMN mobiliario_requerido TEXT DEFAULT NULL");
@@ -227,6 +235,67 @@ foreach ($solverColumns as $col) {
 }
 
 // ─────────────────────────────────────────────
+// 3b. Tablas de Student Sorting (Grupos)
+// ─────────────────────────────────────────────
+
+$sortingGruposTables = [
+    'estudiantes' => "CREATE TABLE IF NOT EXISTS estudiantes (
+        id TEXT PRIMARY KEY, rut TEXT, nombre TEXT NOT NULL, email TEXT,
+        carrera_id TEXT NOT NULL, nivel_id TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (carrera_id) REFERENCES carreras(id) ON DELETE CASCADE,
+        FOREIGN KEY (nivel_id) REFERENCES niveles(id) ON DELETE SET NULL)",
+
+    'inscripciones' => "CREATE TABLE IF NOT EXISTS inscripciones (
+        id TEXT PRIMARY KEY, estudiante_id TEXT NOT NULL, asignatura_id TEXT NOT NULL,
+        temporada_id TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
+        FOREIGN KEY (asignatura_id) REFERENCES asignaturas(id) ON DELETE CASCADE,
+        FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
+        UNIQUE(estudiante_id, asignatura_id, temporada_id))",
+
+    'asignaciones_seccion' => "CREATE TABLE IF NOT EXISTS asignaciones_seccion (
+        id TEXT PRIMARY KEY, estudiante_id TEXT NOT NULL, seccion_id TEXT NOT NULL,
+        asignatura_id TEXT NOT NULL, temporada_id TEXT NOT NULL,
+        manual INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id) ON DELETE CASCADE,
+        FOREIGN KEY (seccion_id) REFERENCES secciones(id) ON DELETE CASCADE,
+        FOREIGN KEY (asignatura_id) REFERENCES asignaturas(id) ON DELETE CASCADE,
+        FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
+        UNIQUE(estudiante_id, asignatura_id, temporada_id))",
+];
+
+foreach ($sortingGruposTables as $name => $sql) {
+    if (!tableExists($pdo, $name)) {
+        $pdo->exec($sql);
+        $results[] = "[+] tabla $name";
+    } else {
+        $results[] = "[=] tabla $name (ya existe)";
+    }
+}
+
+// ─────────────────────────────────────────────
+// 3c. Fix coordenadas de salas huérfanas
+// ─────────────────────────────────────────────
+
+// Salas con coordenadas por defecto del campus que no coinciden con su edificio
+$stmt = $pdo->prepare("
+    UPDATE salas SET lat = e.lat, lng = e.lng
+    FROM edificios e
+    WHERE salas.edificio_id = e.id
+      AND (ABS(salas.lat - e.lat) > 0.001 OR ABS(salas.lng - e.lng) > 0.001)
+      AND salas.lat BETWEEN -41.49 AND -41.48
+      AND salas.lng BETWEEN -72.90 AND -72.89
+");
+$stmt->execute();
+$fixedCount = $stmt->rowCount();
+if ($fixedCount > 0) {
+    $results[] = "[+] $fixedCount salas corregidas: coordenadas alineadas a su edificio";
+} else {
+    $results[] = '[=] coordenadas de salas (todas correctas)';
+}
+
+// ─────────────────────────────────────────────
 // 4. Índices (IF NOT EXISTS es seguro)
 // ─────────────────────────────────────────────
 
@@ -268,25 +337,43 @@ $indices = [
     'CREATE INDEX IF NOT EXISTS idx_asignaciones_commit ON horario_asignaciones(commit_id)',
     'CREATE INDEX IF NOT EXISTS idx_asignaciones_sesion ON horario_asignaciones(sesion_id)',
     'CREATE INDEX IF NOT EXISTS idx_tokens_token ON solver_api_tokens(token)',
+    // Student Sorting
+    'CREATE INDEX IF NOT EXISTS idx_estudiantes_carrera ON estudiantes(carrera_id)',
+    'CREATE INDEX IF NOT EXISTS idx_estudiantes_nivel ON estudiantes(nivel_id)',
+    'CREATE INDEX IF NOT EXISTS idx_inscripciones_estudiante ON inscripciones(estudiante_id)',
+    'CREATE INDEX IF NOT EXISTS idx_inscripciones_asignatura ON inscripciones(asignatura_id, temporada_id)',
+    'CREATE INDEX IF NOT EXISTS idx_inscripciones_temporada ON inscripciones(temporada_id)',
+    'CREATE INDEX IF NOT EXISTS idx_asig_seccion_estudiante ON asignaciones_seccion(estudiante_id, temporada_id)',
+    'CREATE INDEX IF NOT EXISTS idx_asig_seccion_seccion ON asignaciones_seccion(seccion_id)',
+    'CREATE INDEX IF NOT EXISTS idx_asig_seccion_asignatura ON asignaciones_seccion(asignatura_id, temporada_id)',
 ];
 
 $indexCount = 0;
+$indexSkipped = 0;
 foreach ($indices as $idx) {
     // Extraer nombre de tabla del índice para verificar que existe
     if (preg_match('/\bON\s+(\w+)\s*\(/i', $idx, $m)) {
         if (!tableExists($pdo, $m[1])) {
-            $results[] = "[!] indice omitido - tabla {$m[1]} no existe";
+            $results[] = "[!] índice omitido - tabla {$m[1]} no existe";
+            $indexSkipped++;
             continue;
         }
     }
     $pdo->exec($idx);
     $indexCount++;
 }
-$results[] = "[+] $indexCount indices creados/verificados";
+$results[] = "[=] $indexCount índices verificados";
 
 // ─────────────────────────────────────────────
 // Resultado
 // ─────────────────────────────────────────────
+
+$applied = 0;
+foreach ($results as $r) {
+    if (strpos($r, '[+]') === 0) {
+        $applied++;
+    }
+}
 
 if ($isCli) {
     foreach ($results as $r) {
@@ -298,12 +385,19 @@ if ($isCli) {
             echo "  [!] $e\n";
         }
     }
-    echo "\nMigración finalizada (" . count($results) . " operaciones)\n";
+    $msg = $applied > 0
+        ? "Migración finalizada: $applied cambios aplicados"
+        : "Base de datos al día — sin cambios pendientes";
+    echo "\n$msg\n";
 } else {
+    $msg = $applied > 0
+        ? "Migración completada: $applied cambios aplicados"
+        : "Base de datos al día — sin cambios pendientes";
     jsonResponse([
         'success' => true,
         'data' => $results,
-        'message' => 'Migración completada: ' . count($results) . ' operaciones'
+        'applied' => $applied,
+        'message' => $msg
     ]);
 }
 

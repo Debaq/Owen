@@ -7,13 +7,15 @@ import { Input } from '@/shared/components/ui/input'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Card } from '@/shared/components/ui/card'
-import { Search, ArrowLeft, MapPin, X } from 'lucide-react'
+import { Search, ArrowLeft, MapPin, X, Building2, DoorOpen } from 'lucide-react'
 import { getPOIs } from '@/features/map/services/mapService'
+import { getAllBuildings, getAllRooms } from '@/features/rooms/services/roomService'
 import {
   getPOICategoryConfig,
   type POI,
   type POICategory,
 } from '@/features/map/types'
+import type { Edificio, Sala } from '@/shared/types/models'
 import { getPublicConfig, type SystemConfig } from '@/features/settings/services/settingsService'
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -31,16 +33,15 @@ Icon.Default.mergeOptions({
 const CAMPUS_CENTER: [number, number] = [-41.48780, -72.89699]
 const DEFAULT_ZOOM = 17
 
-// Componente para centrar el mapa programáticamente
 function FlyTo({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap()
   useEffect(() => {
-    map.flyTo([lat, lng], 19, { duration: 0.8 })
+    map.flyTo([lat, lng], 18, { duration: 0.8 })
   }, [lat, lng, map])
   return null
 }
 
-// Agrupar categorías por secciones temáticas para mejor navegación
+// Agrupar categorías por secciones temáticas
 const CATEGORY_GROUPS: Array<{ label: string; categories: POICategory[] }> = [
   {
     label: 'Institucional',
@@ -72,13 +73,20 @@ const CATEGORY_GROUPS: Array<{ label: string; categories: POICategory[] }> = [
   },
 ]
 
+type FocusTarget =
+  | { type: 'poi'; data: POI }
+  | { type: 'edificio'; data: Edificio }
+  | { type: 'sala'; data: Sala; edificio?: Edificio }
+
 export function CampusGuideView() {
   const navigate = useNavigate()
   const [pois, setPois] = useState<POI[]>([])
+  const [edificios, setEdificios] = useState<Edificio[]>([])
+  const [salas, setSalas] = useState<Sala[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<POICategory | null>(null)
-  const [focusedPOI, setFocusedPOI] = useState<POI | null>(null)
+  const [focused, setFocused] = useState<FocusTarget | null>(null)
   const [siteConfig, setSiteConfig] = useState<SystemConfig>({})
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -86,11 +94,15 @@ export function CampusGuideView() {
     async function load() {
       try {
         setLoading(true)
-        const [poisData, config] = await Promise.all([
+        const [poisData, edificiosData, salasData, config] = await Promise.all([
           getPOIs(),
+          getAllBuildings().catch(() => []),
+          getAllRooms().catch(() => []),
           getPublicConfig().catch(() => ({}) as SystemConfig),
         ])
         setPois(poisData)
+        setEdificios(edificiosData)
+        setSalas(salasData)
         setSiteConfig(config)
       } catch {
         setPois([])
@@ -117,23 +129,61 @@ export function CampusGuideView() {
     return result
   }, [pois, activeCategory, searchQuery])
 
+  // Búsqueda de edificios y salas (solo cuando hay query de texto)
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) return { edificios: [] as Edificio[], salas: [] as (Sala & { edificio?: Edificio })[] }
+    const q = searchQuery.toLowerCase()
+
+    const matchedEdificios = edificios.filter(
+      e => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)
+    )
+
+    const matchedSalas = salas
+      .filter(s => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
+      .map(s => ({ ...s, edificio: edificios.find(e => e.id === s.edificio_id) }))
+
+    return { edificios: matchedEdificios, salas: matchedSalas }
+  }, [searchQuery, edificios, salas])
+
+  const totalSearchResults = filteredPOIs.length + searchResults.edificios.length + searchResults.salas.length
+
   // Contar POIs por categoría
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    pois.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1
-    })
+    pois.forEach(p => { counts[p.category] = (counts[p.category] || 0) + 1 })
     return counts
   }, [pois])
 
-  // Categorías que tienen POIs
-  const categoriesWithPOIs = useMemo(() => {
-    return new Set(pois.map(p => p.category))
-  }, [pois])
+  const categoriesWithPOIs = useMemo(() => new Set(pois.map(p => p.category)), [pois])
+
+  const focusCoords = useMemo<{ lat: number; lng: number } | null>(() => {
+    if (!focused) return null
+    if (focused.type === 'poi') return { lat: focused.data.lat, lng: focused.data.lng }
+    if (focused.type === 'edificio') return { lat: focused.data.lat, lng: focused.data.lng }
+    if (focused.type === 'sala') {
+      const s = focused.data
+      if (s.lat && s.lng) return { lat: s.lat, lng: s.lng }
+      if (focused.edificio) return { lat: focused.edificio.lat, lng: focused.edificio.lng }
+    }
+    return null
+  }, [focused])
 
   const handlePOIClick = useCallback((poi: POI) => {
-    setFocusedPOI(poi)
-    // En móvil, scroll hacia el mapa
+    setFocused({ type: 'poi', data: poi })
+    if (window.innerWidth < 1024) {
+      document.getElementById('campus-map')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [])
+
+  const handleEdificioClick = useCallback((edificio: Edificio) => {
+    setFocused({ type: 'edificio', data: edificio })
+    if (window.innerWidth < 1024) {
+      document.getElementById('campus-map')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [])
+
+  const handleSalaClick = useCallback((sala: Sala, edificio?: Edificio) => {
+    setFocused({ type: 'sala', data: sala, edificio })
     if (window.innerWidth < 1024) {
       document.getElementById('campus-map')?.scrollIntoView({ behavior: 'smooth' })
     }
@@ -141,16 +191,14 @@ export function CampusGuideView() {
 
   const handleCategoryClick = useCallback((cat: POICategory) => {
     setActiveCategory(prev => prev === cat ? null : cat)
-    setFocusedPOI(null)
-    if (listRef.current) {
-      listRef.current.scrollTop = 0
-    }
+    setFocused(null)
+    if (listRef.current) listRef.current.scrollTop = 0
   }, [])
 
   const clearFilters = useCallback(() => {
     setActiveCategory(null)
     setSearchQuery('')
-    setFocusedPOI(null)
+    setFocused(null)
   }, [])
 
   if (loading) {
@@ -178,7 +226,7 @@ export function CampusGuideView() {
                 <h1 className="text-xl font-bold text-gray-900">
                   {siteConfig.site_name || 'Campus'} - Lugares de Interés
                 </h1>
-                <p className="text-xs text-gray-500">Encuentra servicios, oficinas y espacios del campus</p>
+                <p className="text-xs text-gray-500">Encuentra servicios, salas, edificios y espacios del campus</p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
@@ -195,7 +243,7 @@ export function CampusGuideView() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar lugar por nombre..."
+                placeholder="Buscar sala, edificio o lugar..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -208,7 +256,6 @@ export function CampusGuideView() {
             )}
           </div>
 
-          {/* Filtro activo */}
           {activeCategory && (
             <div className="mt-2 flex items-center gap-2">
               <span className="text-xs text-gray-500">Filtro:</span>
@@ -225,13 +272,13 @@ export function CampusGuideView() {
         </div>
       </div>
 
-      {/* Contenido principal: dos columnas en desktop, stack en mobile */}
+      {/* Contenido principal */}
       <div className="container mx-auto px-4 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
 
-          {/* Panel izquierdo: categorías + lista */}
+          {/* Panel izquierdo */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Categorías agrupadas */}
+            {/* Categorías: solo cuando no hay búsqueda activa */}
             {!searchQuery && !activeCategory && (
               <div className="space-y-3">
                 {CATEGORY_GROUPS.map(group => {
@@ -243,7 +290,6 @@ export function CampusGuideView() {
                       <div className="flex flex-wrap gap-1.5">
                         {groupCats.map(cat => {
                           const config = getPOICategoryConfig(cat)
-                          const count = categoryCounts[cat] || 0
                           return (
                             <button
                               key={cat}
@@ -253,7 +299,7 @@ export function CampusGuideView() {
                             >
                               <span>{config.icon}</span>
                               <span className="font-medium">{config.label}</span>
-                              <span className="text-xs text-gray-400">({count})</span>
+                              <span className="text-xs text-gray-400">({categoryCounts[cat] || 0})</span>
                             </button>
                           )
                         })}
@@ -262,7 +308,6 @@ export function CampusGuideView() {
                   )
                 })}
 
-                {/* Categorías sin grupo que tengan POIs */}
                 {(() => {
                   const groupedCats = new Set(CATEGORY_GROUPS.flatMap(g => g.categories))
                   const ungrouped = Array.from(categoriesWithPOIs).filter(c => !groupedCats.has(c))
@@ -293,13 +338,78 @@ export function CampusGuideView() {
               </div>
             )}
 
-            {/* Lista de POIs filtrados */}
+            {/* Lista de resultados */}
             {(activeCategory || searchQuery) && (
               <div ref={listRef} className="space-y-2 max-h-[60vh] lg:max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
-                <p className="text-sm text-gray-500">{filteredPOIs.length} lugar{filteredPOIs.length !== 1 ? 'es' : ''} encontrado{filteredPOIs.length !== 1 ? 's' : ''}</p>
+                <p className="text-sm text-gray-500">
+                  {searchQuery.trim().length >= 2
+                    ? `${totalSearchResults} resultado${totalSearchResults !== 1 ? 's' : ''}`
+                    : `${filteredPOIs.length} lugar${filteredPOIs.length !== 1 ? 'es' : ''}`}
+                </p>
+
+                {/* Edificios encontrados */}
+                {searchResults.edificios.length > 0 && (
+                  <>
+                    <p className="text-xs font-semibold text-gray-400 uppercase mt-2">Edificios</p>
+                    {searchResults.edificios.map(e => (
+                      <Card
+                        key={`e-${e.id}`}
+                        className={`p-3 cursor-pointer transition-all hover:shadow-md ${
+                          focused?.type === 'edificio' && focused.data.id === e.id ? 'ring-2 ring-blue-500 shadow-md' : ''
+                        }`}
+                        onClick={() => handleEdificioClick(e)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white text-lg flex-shrink-0">
+                            🏢
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm">{e.code} — {e.name}</h3>
+                            <p className="text-xs text-gray-500">{e.pisos} pisos{e.descripcion ? ` · ${e.descripcion}` : ''}</p>
+                          </div>
+                          <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        </div>
+                      </Card>
+                    ))}
+                  </>
+                )}
+
+                {/* Salas encontradas */}
+                {searchResults.salas.length > 0 && (
+                  <>
+                    <p className="text-xs font-semibold text-gray-400 uppercase mt-2">Salas</p>
+                    {searchResults.salas.map(s => (
+                      <Card
+                        key={`s-${s.id}`}
+                        className={`p-3 cursor-pointer transition-all hover:shadow-md ${
+                          focused?.type === 'sala' && focused.data.id === s.id ? 'ring-2 ring-blue-500 shadow-md' : ''
+                        }`}
+                        onClick={() => handleSalaClick(s, s.edificio)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center text-white text-lg flex-shrink-0">
+                            🚪
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm">{s.code} — {s.name}</h3>
+                            <p className="text-xs text-gray-500">
+                              {s.edificio ? s.edificio.name : 'Sin edificio'} · P{s.piso} · {s.capacidad} pers.
+                            </p>
+                          </div>
+                          <DoorOpen className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        </div>
+                      </Card>
+                    ))}
+                  </>
+                )}
+
+                {/* POIs */}
+                {filteredPOIs.length > 0 && searchQuery.trim().length >= 2 && (
+                  <p className="text-xs font-semibold text-gray-400 uppercase mt-2">Lugares de interés</p>
+                )}
                 {filteredPOIs.map(poi => {
                   const config = getPOICategoryConfig(poi.category)
-                  const isFocused = focusedPOI?.id === poi.id
+                  const isFocused = focused?.type === 'poi' && focused.data.id === poi.id
                   return (
                     <Card
                       key={poi.id}
@@ -325,16 +435,16 @@ export function CampusGuideView() {
                     </Card>
                   )
                 })}
-                {filteredPOIs.length === 0 && (
+
+                {totalSearchResults === 0 && filteredPOIs.length === 0 && (
                   <div className="text-center py-8 text-gray-400">
-                    <p>No se encontraron lugares</p>
+                    <p>No se encontraron resultados</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Estado vacío cuando no hay POIs en absoluto */}
-            {pois.length === 0 && (
+            {pois.length === 0 && edificios.length === 0 && (
               <div className="text-center py-12 text-gray-400">
                 <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p className="font-medium">No hay lugares registrados aún</p>
@@ -348,115 +458,106 @@ export function CampusGuideView() {
               <MapContainer
                 center={CAMPUS_CENTER}
                 zoom={DEFAULT_ZOOM}
+                maxZoom={18}
                 style={{ height: 'calc(100vh - 220px)', minHeight: '400px', width: '100%' }}
                 scrollWheelZoom={true}
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  maxZoom={18}
                 />
 
-                {/* Centrar en POI seleccionado */}
-                {focusedPOI && <FlyTo lat={focusedPOI.lat} lng={focusedPOI.lng} />}
+                {/* Centrar en elemento seleccionado */}
+                {focusCoords && <FlyTo lat={focusCoords.lat} lng={focusCoords.lng} />}
 
-                {/* Markers de POIs filtrados */}
-                {filteredPOIs.map(poi => {
-                  const config = getPOICategoryConfig(poi.category)
-                  const iconEmoji = poi.icon || config.icon
-                  const markerColor = poi.color || config.color
-                  const isFocused = focusedPOI?.id === poi.id
-
+                {/* Edificios — siempre visibles */}
+                {edificios.map(e => {
+                  if (!e.lat || !e.lng) return null
+                  const isFocused = focused?.type === 'edificio' && focused.data.id === e.id
                   const icon = divIcon({
                     html: `
                       <div style="
-                        background-color: ${markerColor};
-                        width: ${isFocused ? '40px' : '32px'};
-                        height: ${isFocused ? '40px' : '32px'};
-                        border-radius: 50%;
+                        background-color: #2563eb;
+                        width: ${isFocused ? '44px' : '36px'};
+                        height: ${isFocused ? '44px' : '36px'};
+                        border-radius: 8px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         font-size: ${isFocused ? '22px' : '18px'};
-                        border: ${isFocused ? '3px solid #2563eb' : '2px solid white'};
+                        border: ${isFocused ? '3px solid #1d4ed8' : '2px solid white'};
                         box-shadow: ${isFocused ? '0 0 12px rgba(37,99,235,0.5)' : '0 2px 4px rgba(0,0,0,0.3)'};
-                        transition: all 0.2s;
-                      ">
-                        ${iconEmoji}
-                      </div>
+                      ">🏢</div>
                     `,
                     className: '',
-                    iconSize: [isFocused ? 40 : 32, isFocused ? 40 : 32],
-                    iconAnchor: [isFocused ? 20 : 16, isFocused ? 20 : 16],
+                    iconSize: [isFocused ? 44 : 36, isFocused ? 44 : 36],
+                    iconAnchor: [isFocused ? 22 : 18, isFocused ? 22 : 18],
                   })
-
                   return (
-                    <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={icon}>
-                      <Tooltip permanent={isFocused} direction="top" offset={[0, -16]}>
-                        <span className="text-xs font-semibold">{poi.name}</span>
+                    <Marker key={`e-${e.id}`} position={[e.lat, e.lng]} icon={icon}>
+                      <Tooltip permanent direction="top" offset={[0, -18]}>
+                        <div className="text-center">
+                          <div className="font-bold text-xs">{e.name}</div>
+                          <div className="text-[10px] text-gray-500">{e.code}</div>
+                        </div>
                       </Tooltip>
                       <Popup>
                         <div className="p-2 min-w-[200px]">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">{iconEmoji}</span>
-                            <div>
-                              <h3 className="font-bold text-sm">{poi.name}</h3>
-                              <p className="text-xs text-gray-500">{config.label}</p>
-                            </div>
-                          </div>
-                          {poi.description && (
-                            <p className="text-sm text-gray-700 mt-1">{poi.description}</p>
-                          )}
+                          <h3 className="font-bold text-sm">🏢 {e.name}</h3>
+                          <p className="text-xs text-gray-500">{e.code} · {e.pisos} pisos</p>
+                          {e.descripcion && <p className="text-xs text-gray-600 mt-1">{e.descripcion}</p>}
                         </div>
                       </Popup>
                     </Marker>
                   )
                 })}
 
-                {/* Si no hay filtro activo, mostrar todos los POIs */}
-                {!activeCategory && !searchQuery && pois.map(poi => {
+                {/* POIs */}
+                {(activeCategory || searchQuery ? filteredPOIs : pois).map(poi => {
                   const config = getPOICategoryConfig(poi.category)
                   const iconEmoji = poi.icon || config.icon
                   const markerColor = poi.color || config.color
+                  const isFocused = focused?.type === 'poi' && focused.data.id === poi.id
+
+                  const showAll = !activeCategory && !searchQuery
+                  const size = isFocused ? 40 : (showAll ? 28 : 32)
 
                   const icon = divIcon({
                     html: `
                       <div style="
                         background-color: ${markerColor};
-                        width: 28px;
-                        height: 28px;
+                        width: ${size}px;
+                        height: ${size}px;
                         border-radius: 50%;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        font-size: 15px;
-                        border: 2px solid white;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                      ">
-                        ${iconEmoji}
-                      </div>
+                        font-size: ${isFocused ? '22px' : (showAll ? '15px' : '18px')};
+                        border: ${isFocused ? '3px solid #2563eb' : '2px solid white'};
+                        box-shadow: ${isFocused ? '0 0 12px rgba(37,99,235,0.5)' : '0 2px 4px rgba(0,0,0,0.3)'};
+                      ">${iconEmoji}</div>
                     `,
                     className: '',
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14],
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2],
                   })
 
                   return (
                     <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={icon}>
-                      <Tooltip direction="top" offset={[0, -14]}>
+                      <Tooltip permanent={isFocused} direction="top" offset={[0, -(size / 2)]}>
                         <span className="text-xs font-semibold">{poi.name}</span>
                       </Tooltip>
                       <Popup>
-                        <div className="p-2 min-w-[180px]">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{iconEmoji}</span>
+                        <div className="p-2 min-w-[200px]">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl">{iconEmoji}</span>
                             <div>
                               <h3 className="font-bold text-sm">{poi.name}</h3>
                               <p className="text-xs text-gray-500">{config.label}</p>
                             </div>
                           </div>
-                          {poi.description && (
-                            <p className="text-xs text-gray-600 mt-1">{poi.description}</p>
-                          )}
+                          {poi.description && <p className="text-sm text-gray-700 mt-1">{poi.description}</p>}
                         </div>
                       </Popup>
                     </Marker>

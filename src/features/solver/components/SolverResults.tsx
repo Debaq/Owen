@@ -110,7 +110,7 @@ export function SolverResults({ result, onBack, onPush }: Props) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Score Global</p>
-              <p className={`text-4xl font-bold ${scoreColor}`}>{res.score_global.toFixed(1)}</p>
+              <p className={`text-4xl font-bold ${scoreColor}`}>{Number(res.score_global).toFixed(1)}</p>
             </div>
             <div className="flex gap-6 text-center">
               <div>
@@ -235,13 +235,13 @@ export function SolverResults({ result, onBack, onPush }: Props) {
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Ocupación salas</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">{(res.estadisticas.ocupacion_salas_promedio * 100).toFixed(0)}%</p>
+                  <p className="text-2xl font-bold">{(Number(res.estadisticas.ocupacion_salas_promedio) * 100).toFixed(0)}%</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Huecos/nivel</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">{res.estadisticas.huecos_por_nivel_promedio.toFixed(1)}</p>
+                  <p className="text-2xl font-bold">{Number(res.estadisticas.huecos_por_nivel_promedio).toFixed(1)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -253,7 +253,7 @@ export function SolverResults({ result, onBack, onPush }: Props) {
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Satisfacción docente</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">{(res.estadisticas.satisfaccion_docente_promedio * 100).toFixed(0)}%</p>
+                  <p className="text-2xl font-bold">{(Number(res.estadisticas.satisfaccion_docente_promedio) * 100).toFixed(0)}%</p>
                 </CardContent>
               </Card>
             </div>

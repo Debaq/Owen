@@ -384,6 +384,72 @@ export interface HorarioDiff {
   score_b?: number | null
 }
 
+// =====================================================
+// Student Sorting (Grupos)
+// =====================================================
+
+export interface Estudiante {
+  id: string
+  rut?: string
+  nombre: string
+  email?: string
+  carrera_id: string
+  nivel_id?: string
+  created_at?: string
+  carrera_nombre?: string
+  nivel_nombre?: string
+}
+
+export interface Inscripcion {
+  id: string
+  estudiante_id: string
+  asignatura_id: string
+  temporada_id: string
+  created_at?: string
+  estudiante_nombre?: string
+  estudiante_rut?: string
+  estudiante_email?: string
+  asignatura_nombre?: string
+  asignatura_code?: string
+  nivel_nombre?: string
+  nivel_id?: string
+}
+
+export interface AsignacionSeccion {
+  id: string
+  estudiante_id: string
+  seccion_id: string
+  asignatura_id: string
+  temporada_id: string
+  manual: boolean
+  created_at?: string
+  estudiante_nombre?: string
+  estudiante_rut?: string
+  seccion_nombre?: string
+  asignatura_nombre?: string
+  asignatura_code?: string
+}
+
+export interface ConflictoHorario {
+  estudiante_id: string
+  estudiante_nombre: string
+  estudiante_rut?: string
+  conflictos: Array<{
+    asignatura_a: { id: string; code: string; name: string; seccion: string }
+    asignatura_b: { id: string; code: string; name: string; seccion: string }
+    bloque: { dia_semana: number; bloque_id: string; hora: string }
+  }>
+}
+
+export interface SortingStatus {
+  total_estudiantes: number
+  total_inscritos: number
+  total_asignados: number
+  total_conflictos: number
+  asignaturas_con_secciones: number
+  asignaturas_sorteadas: number
+}
+
 // Token API del solver
 export interface SolverApiToken {
   id: string

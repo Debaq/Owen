@@ -23,14 +23,15 @@ export const api = axios.create({
 // Exportar la URL para uso directo si es necesario
 export const API_BASE_URL = API_URL
 
-// Response interceptor to handle auth errors
+// Response interceptor: extract backend error messages
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // If we receive a 401 Unauthorized, we might want to redirect to login
-      // but let's leave that decision to the caller or a higher level auth provider
-      // console.warn('Unauthorized access', error.response.data) // Suppressed to avoid noise on init
+    if (error.response) {
+      const data = error.response.data
+      if (data && data.error) {
+        return Promise.reject(new Error(data.error))
+      }
     }
     return Promise.reject(error)
   }

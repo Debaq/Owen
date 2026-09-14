@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { useEffect, useState, useMemo } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css'
-import 'leaflet-routing-machine'
+import { getRoutes } from '@/features/map/services/mapService'
+import { findPath } from '@/features/map/services/pathfinding'
+import type { Route } from '@/features/map/types'
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
@@ -31,7 +32,6 @@ interface NavigationMapProps {
   onRouteError?: () => void
 }
 
-// Marcador "Estás aquí" con pulso
 const youAreHereIcon = L.divIcon({
   className: '',
   html: `
@@ -61,85 +61,37 @@ const destIcon = new L.Icon({
   shadowSize: [41, 41],
 })
 
-// Componente interno que maneja el routing con useMap()
-function RoutingControl({
-  origin,
-  destination,
-  onRouteFound,
-  onRouteError,
-}: {
-  origin: [number, number]
-  destination: [number, number]
-  onRouteFound?: (info: RouteInfo) => void
-  onRouteError?: () => void
-}) {
+function FitBounds({ points }: { points: Array<[number, number]> }) {
   const map = useMap()
-  const controlRef = useRef<L.Routing.Control | null>(null)
-
   useEffect(() => {
-    if (controlRef.current) {
-      controlRef.current.remove()
-      controlRef.current = null
-    }
-
-    const control = L.Routing.control({
-      waypoints: [
-        L.latLng(origin[0], origin[1]),
-        L.latLng(destination[0], destination[1]),
-      ],
-      router: L.Routing.osrmv1({
-        serviceUrl: 'https://router.project-osrm.org/route/v1',
-        profile: 'foot',
-      }),
-      routeWhileDragging: false,
-      addWaypoints: false,
-      show: false,
-      fitSelectedRoutes: false,
-      createMarker: () => null,
-      lineOptions: {
-        styles: [{ color: '#2563eb', weight: 5, opacity: 0.7, dashArray: '10, 8' }],
-        addWaypoints: false,
-      },
-    })
-
-    control.on('routesfound', (e: L.Routing.RoutingEvent) => {
-      if (e.routes && e.routes.length > 0) {
-        const route = e.routes[0]
-        onRouteFound?.({
-          distance: route.summary.totalDistance,
-          time: route.summary.totalTime,
-        })
-      }
-      // Ajustar vista para mostrar toda la ruta
-      const bounds = L.latLngBounds([
-        L.latLng(origin[0], origin[1]),
-        L.latLng(destination[0], destination[1]),
-      ])
-      map.fitBounds(bounds.pad(0.3))
-    })
-
-    control.on('routingerror', () => {
-      onRouteError?.()
-    })
-
-    control.addTo(map)
-    controlRef.current = control
-
-    return () => {
-      if (controlRef.current) {
-        controlRef.current.remove()
-        controlRef.current = null
-      }
-    }
-  }, [origin[0], origin[1], destination[0], destination[1]])
-
+    if (points.length < 2) return
+    const bounds = L.latLngBounds(points)
+    map.fitBounds(bounds.pad(0.3))
+  }, [points, map])
   return null
 }
 
 export function NavigationMap({
   origin, originLabel, destination, destinationLabel,
-  onRouteFound, onRouteError,
+  onRouteFound,
 }: NavigationMapProps) {
+  const [routes, setRoutes] = useState<Route[]>([])
+
+  useEffect(() => {
+    getRoutes().then(setRoutes).catch(() => setRoutes([]))
+  }, [])
+
+  const navigation = useMemo(() => {
+    if (!destination) return null
+    return findPath(origin, destination, routes)
+  }, [origin[0], origin[1], destination?.[0], destination?.[1], routes])
+
+  useEffect(() => {
+    if (!navigation || !onRouteFound) return
+    // 80 m/min = 4.8 km/h caminando
+    onRouteFound({ distance: navigation.distance, time: (navigation.distance / 80) * 60 })
+  }, [navigation])
+
   const center = destination
     ? [(origin[0] + destination[0]) / 2, (origin[1] + destination[1]) / 2] as [number, number]
     : origin
@@ -150,7 +102,7 @@ export function NavigationMap({
         center={center}
         zoom={destination ? 16 : 18}
         style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
         touchZoom={true}
       >
         <TileLayer
@@ -158,37 +110,47 @@ export function NavigationMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        {/* Rutas del campus (referencia visual gris) */}
+        {routes.map(route => (
+          <Polyline
+            key={route.id}
+            positions={route.points}
+            pathOptions={{ color: '#d1d5db', weight: 3, opacity: 0.5 }}
+          />
+        ))}
+
         {/* Marcador origen */}
         <Marker position={origin} icon={youAreHereIcon}>
           <Popup>
-            <strong>Estas aqui</strong><br />
+            <strong>Estás aquí</strong><br />
             {originLabel}
           </Popup>
         </Marker>
 
-        {/* Marcador destino */}
-        {destination && (
-          <Marker position={destination} icon={destIcon}>
-            <Popup>
-              <strong>Destino</strong><br />
-              {destinationLabel}
-            </Popup>
-          </Marker>
-        )}
+        {/* Destino + ruta calculada */}
+        {destination && navigation && (
+          <>
+            <Marker position={destination} icon={destIcon}>
+              <Popup>
+                <strong>Destino</strong><br />
+                {destinationLabel}
+              </Popup>
+            </Marker>
 
-        {/* Ruta */}
-        {destination && (
-          <RoutingControl
-            origin={origin}
-            destination={destination}
-            onRouteFound={onRouteFound}
-            onRouteError={onRouteError}
-          />
+            <Polyline
+              positions={navigation.path}
+              pathOptions={{
+                color: '#2563eb',
+                weight: 5,
+                opacity: 0.8,
+                dashArray: navigation.usedRoutes ? undefined : '10, 8',
+              }}
+            />
+
+            <FitBounds points={navigation.path} />
+          </>
         )}
       </MapContainer>
-
-      {/* Ocultar panel de instrucciones de LRM si aparece */}
-      <style>{`.leaflet-routing-container { display: none !important; }`}</style>
     </div>
   )
 }

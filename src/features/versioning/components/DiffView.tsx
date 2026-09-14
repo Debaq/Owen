@@ -41,7 +41,7 @@ export function DiffView({ commitA, commitB, onBack }: Props) {
   if (!diff) return <div className="p-4 text-red-500">Error al cargar diff</div>
 
   const scoreDelta = (diff.score_b !== null && diff.score_a !== null)
-    ? (diff.score_b! - diff.score_a!).toFixed(1)
+    ? (Number(diff.score_b) - Number(diff.score_a)).toFixed(1)
     : null
 
   return (

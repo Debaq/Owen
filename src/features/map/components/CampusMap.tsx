@@ -9,10 +9,12 @@ import { RoutePolyline } from './RoutePolyline';
 import { AreaPolygon } from './AreaPolygon';
 import { LayerControl, type LayerVisibility } from './LayerControl';
 import { MapControls } from './MapControls';
+import { MapSearchBar } from './MapSearchBar';
 import { POIForm } from './POIForm';
+import { RouteDrawer } from './RouteDrawer';
 import { useMapData } from '../hooks/useMapData';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { deletePOI } from '../services/mapService';
+import { deletePOI, deleteRoute } from '../services/mapService';
 import { POI_CATEGORIES_CONFIG, type POI } from '../types';
 import {
   Dialog,
@@ -52,6 +54,7 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
 
   const [editingPOI, setEditingPOI] = useState<POI | undefined>();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [drawingRoute, setDrawingRoute] = useState(false);
 
   const handleEditPOI = (poi: POI) => {
     setEditingPOI(poi);
@@ -75,9 +78,20 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
     reload();
   };
 
+  const handleDeleteRoute = async (route: { id: string; name: string }) => {
+    if (!confirm(`¿Eliminar la ruta "${route.name}"?`)) return;
+    try {
+      await deleteRoute(route.id);
+      toast.success('Ruta eliminada');
+      reload();
+    } catch {
+      toast.error('Error al eliminar');
+    }
+  };
+
   const [visibility, setVisibility] = useState<LayerVisibility>({
     buildings: true,
-    rooms: true,
+    rooms: false,
     routes: true,
     areas: true,
     poiCategories: new Set(
@@ -120,11 +134,16 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
         zoom={DEFAULT_ZOOM}
         style={{ height, width: '100%' }}
         scrollWheelZoom={true}
+        maxZoom={18}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={18}
         />
+
+        {/* Buscador */}
+        <MapSearchBar edificios={edificios} salas={salas} pois={pois} />
 
         {/* Áreas (polígonos) - renderizar primero (abajo) */}
         {visibility.areas && areas.map(area => (
@@ -133,7 +152,12 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
 
         {/* Rutas (polilíneas) */}
         {visibility.routes && routes.map(route => (
-          <RoutePolyline key={route.id} route={route} />
+          <RoutePolyline
+            key={route.id}
+            route={route}
+            canEdit={canEdit}
+            onDelete={handleDeleteRoute}
+          />
         ))}
 
         {/* Edificios */}
@@ -161,10 +185,22 @@ export function CampusMap({ className = '', height = '600px' }: CampusMapProps) 
             onDelete={handleDeletePOI}
           />
         ))}
+
+        {/* Editor de rutas */}
+        {drawingRoute && (
+          <RouteDrawer
+            onSuccess={() => { setDrawingRoute(false); reload() }}
+            onCancel={() => setDrawingRoute(false)}
+          />
+        )}
       </MapContainer>
 
       {/* Controles flotantes */}
-      <MapControls onPOICreated={reload} />
+      <MapControls
+        onPOICreated={reload}
+        onDrawRoute={() => setDrawingRoute(true)}
+        isDrawingRoute={drawingRoute}
+      />
 
       {/* Control de capas */}
       <LayerControl visibility={visibility} onChange={setVisibility} />

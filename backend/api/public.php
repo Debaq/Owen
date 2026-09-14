@@ -273,31 +273,40 @@ function getBuilding($pdo) {
     $hora_actual = date('H:i');
     $dia_actual = (int)date('w'); // 0=dom, 1=lun...
 
-    // Bloque actual: hora_inicio <= ahora < hora_fin, mismo dia
-    $stmt = $pdo->prepare("
-        SELECT * FROM bloques_horarios
-        WHERE activo = 1 AND dia_semana = :dia
-          AND hora_inicio <= :hora AND hora_fin > :hora2
-        ORDER BY orden ASC LIMIT 1
-    ");
-    $stmt->execute(['dia' => $dia_actual, 'hora' => $hora_actual, 'hora2' => $hora_actual]);
-    $bloque_actual = $stmt->fetch();
-
-    // Bloque siguiente: siguiente bloque del mismo dia despues de ahora
-    $stmt = $pdo->prepare("
-        SELECT * FROM bloques_horarios
-        WHERE activo = 1 AND dia_semana = :dia
-          AND hora_inicio > :hora
-        ORDER BY orden ASC LIMIT 1
-    ");
-    $stmt->execute(['dia' => $dia_actual, 'hora' => $hora_actual]);
-    $bloque_siguiente = $stmt->fetch();
-
-    // Temporada activa
-    $stmt = $pdo->prepare("SELECT id FROM temporadas WHERE activa = 1 LIMIT 1");
+    // Temporada activa y su sistema de bloques
+    $stmt = $pdo->prepare("SELECT id, sistema_bloque_id FROM temporadas WHERE activa = 1 LIMIT 1");
     $stmt->execute();
     $temp = $stmt->fetch();
     $temporada_id = $temp ? $temp['id'] : null;
+    $sistema_id = $temp ? $temp['sistema_bloque_id'] : null;
+
+    // Bloque actual: hora_inicio <= ahora < hora_fin, mismo dia, mismo sistema
+    $bloqueSql = "SELECT * FROM bloques_horarios
+        WHERE activo = 1 AND dia_semana = :dia
+          AND hora_inicio <= :hora AND hora_fin > :hora2";
+    $bloqueParams = ['dia' => $dia_actual, 'hora' => $hora_actual, 'hora2' => $hora_actual];
+    if ($sistema_id) {
+        $bloqueSql .= " AND sistema_bloque_id = :sistema_id";
+        $bloqueParams['sistema_id'] = $sistema_id;
+    }
+    $bloqueSql .= " ORDER BY orden ASC LIMIT 1";
+    $stmt = $pdo->prepare($bloqueSql);
+    $stmt->execute($bloqueParams);
+    $bloque_actual = $stmt->fetch();
+
+    // Bloque siguiente: siguiente bloque del mismo dia despues de ahora, mismo sistema
+    $sigSql = "SELECT * FROM bloques_horarios
+        WHERE activo = 1 AND dia_semana = :dia
+          AND hora_inicio > :hora";
+    $sigParams = ['dia' => $dia_actual, 'hora' => $hora_actual];
+    if ($sistema_id) {
+        $sigSql .= " AND sistema_bloque_id = :sistema_id";
+        $sigParams['sistema_id'] = $sistema_id;
+    }
+    $sigSql .= " ORDER BY orden ASC LIMIT 1";
+    $stmt = $pdo->prepare($sigSql);
+    $stmt->execute($sigParams);
+    $bloque_siguiente = $stmt->fetch();
 
     // Salas del edificio
     $stmt = $pdo->prepare("SELECT id, code, name, piso, tipo, capacidad, equipamiento FROM salas WHERE edificio_id = ? AND activo = 1 ORDER BY piso ASC, code ASC");
@@ -377,8 +386,19 @@ function getBuilding($pdo) {
 }
 
 function getBloques($pdo) {
-    $stmt = $pdo->prepare("SELECT * FROM bloques_horarios WHERE activo = 1 ORDER BY orden ASC");
+    // Filtrar por sistema de bloques de la temporada activa
+    $stmt = $pdo->prepare("SELECT sistema_bloque_id FROM temporadas WHERE activa = 1 LIMIT 1");
     $stmt->execute();
+    $temp = $stmt->fetch();
+    $sistema_id = $temp ? $temp['sistema_bloque_id'] : null;
+
+    if ($sistema_id) {
+        $stmt = $pdo->prepare("SELECT * FROM bloques_horarios WHERE activo = 1 AND sistema_bloque_id = ? ORDER BY orden ASC");
+        $stmt->execute([$sistema_id]);
+    } else {
+        $stmt = $pdo->prepare("SELECT * FROM bloques_horarios WHERE activo = 1 ORDER BY orden ASC");
+        $stmt->execute();
+    }
     $bloques = $stmt->fetchAll();
 
     foreach ($bloques as &$b) {

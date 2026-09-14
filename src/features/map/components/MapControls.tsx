@@ -13,9 +13,11 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface MapControlsProps {
   onPOICreated?: () => void;
+  onDrawRoute?: () => void;
+  isDrawingRoute?: boolean;
 }
 
-export function MapControls({ onPOICreated }: MapControlsProps) {
+export function MapControls({ onPOICreated, onDrawRoute, isDrawingRoute }: MapControlsProps) {
   const { user } = useAuth();
   const [showPOIDialog, setShowPOIDialog] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -66,12 +68,12 @@ export function MapControls({ onPOICreated }: MapControlsProps) {
 
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant={isDrawingRoute ? 'default' : 'outline'}
                   className="w-full justify-start"
-                  disabled
-                  title="Próximamente"
+                  onClick={onDrawRoute}
+                  disabled={isDrawingRoute}
                 >
-                  🛤️ Dibujar Ruta
+                  🛤️ {isDrawingRoute ? 'Dibujando ruta...' : 'Dibujar Ruta'}
                 </Button>
 
                 <Button

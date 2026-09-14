@@ -140,9 +140,31 @@ export async function filterRooms(filters: RoomFilters): Promise<Sala[]> {
   const params = new URLSearchParams()
   if (filters.tipo) params.append('tipo', filters.tipo)
   if (filters.edificioId) params.append('edificio_id', filters.edificioId)
-  
+  if (filters.activo === false) params.append('include_inactive', 'true')
+
   const response = await api.get<ApiResponse<Sala[]>>(`/salas.php?${params.toString()}`)
-  return response.data.data || []
+  let salas = response.data.data || []
+
+  // Filtrado client-side para campos no soportados por el backend
+  if (filters.search) {
+    const q = filters.search.toLowerCase()
+    salas = salas.filter(s => s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
+  }
+  if (filters.capacidadMin) {
+    salas = salas.filter(s => s.capacidad >= filters.capacidadMin!)
+  }
+  if (filters.capacidadMax) {
+    salas = salas.filter(s => s.capacidad <= filters.capacidadMax!)
+  }
+  if (filters.equipamiento && filters.equipamiento.length > 0) {
+    salas = salas.filter(s =>
+      filters.equipamiento!.every(eq =>
+        s.equipamiento.some(e => e.toLowerCase().includes(eq.toLowerCase()))
+      )
+    )
+  }
+
+  return salas
 }
 
 /**

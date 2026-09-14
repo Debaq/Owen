@@ -391,8 +391,9 @@ export function SchedulesView() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ScheduleGrid 
-              schedules={schedules} 
+            <ScheduleGrid
+              schedules={schedules}
+              sistemaId={temporadaActiva?.sistema_bloque_id}
               onScheduleClick={handleScheduleClick}
               onCellClick={handleCellClick}
             />

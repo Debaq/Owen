@@ -25,6 +25,11 @@ import type {
   HorarioTag,
   HorarioDiff,
   SolverApiToken,
+  Estudiante,
+  Inscripcion,
+  AsignacionSeccion,
+  ConflictoHorario,
+  SortingStatus,
 } from './models'
 
 // Re-export all types
@@ -54,6 +59,11 @@ export type {
   HorarioTag,
   HorarioDiff,
   SolverApiToken,
+  Estudiante,
+  Inscripcion,
+  AsignacionSeccion,
+  ConflictoHorario,
+  SortingStatus,
 }
 
 // Additional utility types

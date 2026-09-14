@@ -305,7 +305,7 @@ export function SolverView() {
                   <span>{progress.sessions_assigned}/{progress.sessions_total} sesiones</span>
                 )}
                 {progress.score !== null && (
-                  <Badge variant="outline">Score: {progress.score.toFixed(1)}</Badge>
+                  <Badge variant="outline">Score: {Number(progress.score).toFixed(1)}</Badge>
                 )}
               </div>
             </div>

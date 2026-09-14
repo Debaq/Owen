@@ -1,4 +1,4 @@
-import { Marker, Popup } from 'react-leaflet';
+import { Marker, Popup, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import { Link } from 'react-router-dom';
 import type { Sala } from '@/shared/types/models';
@@ -9,6 +9,7 @@ interface RoomMarkerProps {
 }
 
 export function RoomMarker({ sala, available = true }: RoomMarkerProps) {
+  const map = useMap();
   const availableColor = available ? '#10b981' : '#ef4444'; // verde si está libre, rojo si ocupada
 
   // Icono según tipo de sala
@@ -43,7 +44,11 @@ export function RoomMarker({ sala, available = true }: RoomMarkerProps) {
   });
 
   return (
-    <Marker position={[sala.lat, sala.lng]} icon={icon}>
+    <Marker
+      position={[sala.lat, sala.lng]}
+      icon={icon}
+      eventHandlers={{ click: () => map.flyTo([sala.lat, sala.lng], Math.max(map.getZoom(), 18), { duration: 0.5 }) }}
+    >
       <Popup>
         <div className="p-3 min-w-[250px]">
           <div className="flex items-center justify-between mb-2">

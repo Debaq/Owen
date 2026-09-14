@@ -1,38 +1,32 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { WizardStepper } from '../components/WizardStepper'
 import { StepRoom } from '../components/StepRoom'
 import { StepTimeSlot } from '../components/StepTimeSlot'
-import { StepAssignment } from '../components/StepAssignment'
+import { CellAssignmentModal } from '../components/CellAssignmentModal'
 import { useWizardState } from '../hooks/useWizardState'
-import { ArrowLeft, ArrowRight, RotateCcw, Calendar, CheckCircle2 } from 'lucide-react'
+import type { BloqueHorario } from '@/shared/types'
+import { ArrowLeft, ArrowRight, Calendar, CheckCircle2, RotateCcw } from 'lucide-react'
 
 export function ScheduleWizardView() {
-  const { state, set, goNext, goBack, reset, canGoNext, submit } = useWizardState()
+  const { state, set, goNext, goBack, reset, canGoNext } = useWizardState()
+  const navigate = useNavigate()
 
-  if (state.submitted) {
-    return (
-      <div className="container mx-auto py-12 max-w-2xl">
-        <Card className="p-8 text-center">
-          <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Horario creado</h2>
-          <p className="text-muted-foreground mb-6">
-            Se programo correctamente en {state.selectedRoom?.code} - {state.selectedRoom?.name}
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={reset}>
-              <RotateCcw className="h-4 w-4 mr-2" /> Crear otro
-            </Button>
-            <Link to="/admin/schedules">
-              <Button variant="outline">
-                <Calendar className="h-4 w-4 mr-2" /> Ver horarios
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      </div>
-    )
+  // Estado local del modal
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedCell, setSelectedCell] = useState<{ dia: number; bloque: BloqueHorario } | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handleCellClick = (dia: number, bloque: BloqueHorario) => {
+    setSelectedCell({ dia, bloque })
+    setModalOpen(true)
+  }
+
+  const handleModalSuccess = () => {
+    setModalOpen(false)
+    setRefreshKey(k => k + 1)
   }
 
   if (!state.temporada) {
@@ -44,7 +38,7 @@ export function ScheduleWizardView() {
             Necesitas una temporada (semestre) activa para crear horarios.
           </p>
           <Link to="/admin/system/bloques">
-            <Button>Ir a configuracion</Button>
+            <Button>Ir a configuración</Button>
           </Link>
         </Card>
       </div>
@@ -63,7 +57,7 @@ export function ScheduleWizardView() {
         </div>
         <Link to="/admin/schedules">
           <Button variant="ghost" size="sm">
-            <Calendar className="h-4 w-4 mr-2" /> Vista clasica
+            <Calendar className="h-4 w-4 mr-2" /> Vista clásica
           </Button>
         </Link>
       </div>
@@ -84,46 +78,57 @@ export function ScheduleWizardView() {
             <StepTimeSlot
               room={state.selectedRoom}
               temporadaId={state.temporada.id}
-              selectedDay={state.selectedDay}
-              selectedBlock={state.selectedBlock}
-              recurrencia={state.recurrencia}
-              fechaInicio={state.fechaInicio}
-              fechaFin={state.fechaFin}
-              onSelectCell={(day, block) => { set('selectedDay', day); set('selectedBlock', block) }}
-              onRecurrenciaChange={(v) => set('recurrencia', v)}
-              onFechaInicioChange={(v) => set('fechaInicio', v)}
-              onFechaFinChange={(v) => set('fechaFin', v)}
-            />
-          )}
-          {state.currentStep === 3 && (
-            <StepAssignment
-              state={state}
-              set={set}
+              sistemaId={state.temporada.sistema_bloque_id}
+              refreshKey={refreshKey}
+              onCellClick={handleCellClick}
             />
           )}
         </CardContent>
       </Card>
 
-      {/* Navegacion */}
+      {/* Navegación */}
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
-          onClick={goBack}
+          onClick={state.currentStep === 2 ? goBack : undefined}
           disabled={state.currentStep === 1}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Atras
+          <ArrowLeft className="h-4 w-4 mr-2" /> Atrás
         </Button>
 
-        {state.currentStep < 3 ? (
-          <Button onClick={goNext} disabled={!canGoNext()}>
-            Siguiente <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        ) : (
-          <Button onClick={submit} disabled={state.submitting}>
-            {state.submitting ? 'Creando...' : 'Crear Horario'}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {state.currentStep === 1 && (
+            <Button onClick={goNext} disabled={!canGoNext()}>
+              Siguiente <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+          {state.currentStep === 2 && (
+            <>
+              <Button variant="outline" onClick={reset}>
+                <RotateCcw className="h-4 w-4 mr-2" /> Cambiar sala
+              </Button>
+              <Button onClick={() => navigate('/admin/schedules')}>
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Listo
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Modal de asignación */}
+      {selectedCell && state.selectedRoom && (
+        <CellAssignmentModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          dia={selectedCell.dia}
+          bloque={selectedCell.bloque}
+          room={state.selectedRoom}
+          temporadaId={state.temporada.id}
+          defaultFechaInicio={state.temporada.fecha_inicio || new Date().toISOString().split('T')[0]}
+          defaultFechaFin={state.temporada.fecha_fin || new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </div>
   )
 }

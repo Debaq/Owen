@@ -19,6 +19,7 @@ import {
   ShieldBan,
   Cpu,
   GitBranch,
+  UsersRound,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -43,7 +44,7 @@ const navigation: NavigationSection[] = [
     items: [
       { name: 'navigation.dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'navigation.schedules', href: '/admin/schedules', icon: Calendar },
-      { name: 'Asistente Horarios', href: '/admin/schedule-wizard', icon: CalendarPlus, roles: ['gestor'], feature: 'solver' },
+      { name: 'Asistente Horarios', href: '/admin/schedule-wizard', icon: CalendarPlus, roles: ['gestor'] },
     ]
   },
   {
@@ -60,6 +61,7 @@ const navigation: NavigationSection[] = [
       { name: 'Carreras', href: '/admin/academic/carreras', icon: GraduationCap },
       { name: 'Unidades', href: '/admin/academic/unidades', icon: Building2, roles: ['gestor'] },
       { name: 'Docentes', href: '/admin/academic/docentes', icon: Users },
+      { name: 'Grupos', href: '/admin/student-groups', icon: UsersRound, roles: ['gestor', 'direccion'] },
     ]
   },
   {

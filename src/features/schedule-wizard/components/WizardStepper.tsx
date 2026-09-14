@@ -1,14 +1,13 @@
-import { Check, MapPin, Clock, BookOpen } from 'lucide-react'
+import { Check, MapPin, Clock } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 
 interface WizardStepperProps {
-  currentStep: 1 | 2 | 3
+  currentStep: 1 | 2
 }
 
 const steps = [
   { number: 1, label: 'Sala', icon: MapPin },
   { number: 2, label: 'Horario', icon: Clock },
-  { number: 3, label: 'Asignacion', icon: BookOpen },
 ]
 
 export function WizardStepper({ currentStep }: WizardStepperProps) {
@@ -21,7 +20,6 @@ export function WizardStepper({ currentStep }: WizardStepperProps) {
 
         return (
           <div key={step.number} className="flex items-center">
-            {/* Circulo */}
             <div className="flex flex-col items-center">
               <div
                 className={cn(
@@ -49,7 +47,6 @@ export function WizardStepper({ currentStep }: WizardStepperProps) {
               </span>
             </div>
 
-            {/* Linea conectora */}
             {i < steps.length - 1 && (
               <div
                 className={cn(

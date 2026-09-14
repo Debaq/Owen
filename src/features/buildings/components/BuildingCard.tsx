@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import type { Edificio as Building } from '@/shared/types/models';
+import { getThumbUrl } from '@/features/settings/services/settingsService';
 
 interface BuildingCardProps {
   building: Building;
@@ -19,7 +20,7 @@ export function BuildingCard({ building, onEdit, onDelete }: BuildingCardProps) 
       <div className="relative h-40 bg-muted flex items-center justify-center group">
         {hasPhotos ? (
           <img 
-            src={building.fotos![0]} 
+            src={getThumbUrl(building.fotos![0])}
             alt={building.name} 
             className="w-full h-full object-cover"
           />
@@ -53,7 +54,7 @@ export function BuildingCard({ building, onEdit, onDelete }: BuildingCardProps) 
           <div className="flex items-center gap-2 text-muted-foreground border-t pt-2">
             <MapPin className="h-4 w-4" />
             <span className="font-mono text-xs truncate">
-              {building.lat.toFixed(5)}, {building.lng.toFixed(5)}
+              {Number(building.lat).toFixed(5)}, {Number(building.lng).toFixed(5)}
             </span>
           </div>
         </div>

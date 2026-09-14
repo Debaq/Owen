@@ -50,13 +50,13 @@ export function useReportData() {
   useEffect(() => {
     async function load() {
       try {
-        const [c, d, s, t, b] = await Promise.all([
+        const [c, d, s, t] = await Promise.all([
           getAllCareers(),
           getAllTeachers(),
           getAllActiveRooms(),
           getActiveTemporada(),
-          getAllBlocks(),
         ])
+        const b = await getAllBlocks(t?.sistema_bloque_id)
         setCarreras(c)
         setDocentes(d)
         setSalas(s)

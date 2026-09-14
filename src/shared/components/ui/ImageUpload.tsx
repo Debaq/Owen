@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Loader2, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { uploadImage } from '@/features/settings/services/settingsService';
+import { uploadImage, getThumbUrl } from '@/features/settings/services/settingsService';
 
 interface ImageUploadProps {
   value: string[];
@@ -47,7 +47,7 @@ export function ImageUpload({ value, onChange, maxImages = 5 }: ImageUploadProps
       <div className="flex flex-wrap gap-4">
         {value.map((url, index) => (
           <div key={index} className="relative group w-32 h-32 rounded-lg overflow-hidden border bg-muted">
-            <img src={url} alt="" className="w-full h-full object-cover" />
+            <img src={getThumbUrl(url)} alt="" className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => removeImage(index)}

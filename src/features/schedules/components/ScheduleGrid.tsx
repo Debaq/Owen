@@ -8,11 +8,12 @@ import { Clock, User, MapPin, BookOpen, Plus } from 'lucide-react'
 
 interface ScheduleGridProps {
   schedules: HorarioWithDetails[]
+  sistemaId?: string
   onScheduleClick?: (schedule: HorarioWithDetails) => void
   onCellClick?: (dia: number, bloque: BloqueHorario) => void
 }
 
-export function ScheduleGrid({ schedules, onScheduleClick, onCellClick }: ScheduleGridProps) {
+export function ScheduleGrid({ schedules, sistemaId, onScheduleClick, onCellClick }: ScheduleGridProps) {
   const [bloques, setBloques] = useState<BloqueHorario[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -20,7 +21,7 @@ export function ScheduleGrid({ schedules, onScheduleClick, onCellClick }: Schedu
     const loadBloques = async () => {
       setIsLoading(true)
       try {
-        const data = await getAllBlocks()
+        const data = await getAllBlocks(sistemaId)
         setBloques(data)
       } catch (error) {
         console.error('Error loading blocks:', error)
@@ -29,7 +30,7 @@ export function ScheduleGrid({ schedules, onScheduleClick, onCellClick }: Schedu
       }
     }
     loadBloques()
-  }, [])
+  }, [sistemaId])
 
   // Group blocks by orden (time slot)
   const rows = useMemo(() => {

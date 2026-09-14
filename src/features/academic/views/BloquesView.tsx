@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Calendar, 
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Calendar,
   Wand2,
-  Trash
+  Trash,
+  X as XIcon,
+  CalendarDays
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,14 +44,28 @@ import { BloqueHorario, SistemaBloque } from '@/shared/types/models';
 import {
   getSistemasBloques,
   createSistemaBloque,
+  deleteSistemaBloque,
   getBloques,
   createBloque,
   updateBloque,
   deleteBloque,
   deleteBloquesByDay
 } from '@/features/settings/services/settingsService';
+import { api } from '@/shared/lib/api';
+import type { ApiResponse } from '@/shared/types';
 
 import { MassGenerator } from '../components/MassGenerator';
+
+interface Temporada {
+  id: string
+  nombre: string
+  tipo: string
+  año: number
+  fecha_inicio: string
+  fecha_fin: string
+  sistema_bloque_id?: string
+  activa: boolean
+}
 
 const blockFormSchema = z.object({
   nombre: z.string().min(1, 'Requerido'),
@@ -81,6 +97,11 @@ export default function BloquesView() {
   const [showMassGenerator, setShowMassGenerator] = useState(false);
   const [editingBlock, setEditingBlock] = useState<BloqueHorario | null>(null);
   const [newSystemName, setNewSystemName] = useState('');
+
+  // Temporadas
+  const [temporadas, setTemporadas] = useState<Temporada[]>([]);
+  const [isTemporadaOpen, setIsTemporadaOpen] = useState(false);
+  const [newTemp, setNewTemp] = useState({ nombre: '', tipo: 'impar', año: new Date().getFullYear(), fecha_inicio: '', fecha_fin: '', sistema_bloque_id: '', activa: false });
 
   const form = useForm<z.infer<typeof blockFormSchema>>({
     resolver: zodResolver(blockFormSchema) as any,
@@ -122,7 +143,85 @@ export default function BloquesView() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchTemporadas = async () => {
+    try {
+      const res = await api.get<ApiResponse<Temporada[]>>('/temporadas.php');
+      setTemporadas(res.data.data || []);
+    } catch { setTemporadas([]); }
+  };
+
+  const handleDeleteSistema = async (sys: SistemaBloque) => {
+    const usedByTemp = temporadas.find(t => t.sistema_bloque_id === sys.id);
+    if (usedByTemp) {
+      toast.error(`No se puede eliminar: lo usa la temporada "${usedByTemp.nombre}"`);
+      return;
+    }
+    if (!confirm(`¿Eliminar el sistema "${sys.nombre}" y todos sus bloques?`)) return;
+    try {
+      await deleteSistemaBloque(sys.id);
+      toast.success('Sistema eliminado');
+      if (selectedSistema?.id === sys.id) setSelectedSistema(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Error al eliminar');
+    }
+  };
+
+  const handleCreateTemporada = async () => {
+    if (!newTemp.nombre || !newTemp.fecha_inicio || !newTemp.fecha_fin) {
+      toast.error('Nombre, fecha inicio y fecha fin son requeridos');
+      return;
+    }
+    try {
+      await api.post('/temporadas.php?action=create', {
+        ...newTemp,
+        sistema_bloque_id: newTemp.sistema_bloque_id || null,
+        activa: newTemp.activa ? 1 : 0,
+      });
+      toast.success('Temporada creada');
+      setNewTemp({ nombre: '', tipo: 'impar', año: new Date().getFullYear(), fecha_inicio: '', fecha_fin: '', sistema_bloque_id: '', activa: false });
+      fetchTemporadas();
+    } catch {
+      toast.error('Error al crear temporada');
+    }
+  };
+
+  const handleToggleActiva = async (temp: Temporada) => {
+    try {
+      await api.post(`/temporadas.php?action=update&id=${temp.id}`, { activa: !temp.activa ? 1 : 0 });
+      toast.success(temp.activa ? 'Temporada desactivada' : 'Temporada activada');
+      fetchTemporadas();
+    } catch {
+      toast.error('Error al cambiar estado');
+    }
+  };
+
+  const handleUpdateTemporadaSistema = async (temp: Temporada, sistemaId: string) => {
+    try {
+      await api.post(`/temporadas.php?action=update&id=${temp.id}`, { sistema_bloque_id: sistemaId || null });
+      toast.success('Sistema de bloques actualizado');
+      fetchTemporadas();
+    } catch {
+      toast.error('Error al actualizar');
+    }
+  };
+
+  const handleDeleteTemporada = async (temp: Temporada) => {
+    if (temp.activa) {
+      toast.error('No se puede eliminar una temporada activa');
+      return;
+    }
+    if (!confirm(`¿Eliminar la temporada "${temp.nombre}"?`)) return;
+    try {
+      await api.post(`/temporadas.php?action=delete&id=${temp.id}`);
+      toast.success('Temporada eliminada');
+      fetchTemporadas();
+    } catch {
+      toast.error('Error al eliminar');
+    }
+  };
+
+  useEffect(() => { fetchData(); fetchTemporadas(); }, []);
   useEffect(() => { 
     if (selectedSistema) {
         fetchBloques(selectedSistema.id);
@@ -184,18 +283,28 @@ export default function BloquesView() {
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1.5">
             {sistemas.map((sys) => (
-              <button
-                key={sys.id}
-                onClick={() => setSelectedSistema(sys)}
-                className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all ${
-                  selectedSistema?.id === sys.id 
-                    ? 'bg-white text-primary font-bold shadow-sm border-l-4 border-l-primary' 
-                    : 'hover:bg-muted text-foreground/70'
-                }`}
-              >
-                <span className="md:hidden flex justify-center uppercase font-bold">{sys.nombre.substring(0, 2)}</span>
-                <span className="hidden md:block truncate">{sys.nombre}</span>
-              </button>
+              <div key={sys.id} className="group relative">
+                <button
+                  onClick={() => setSelectedSistema(sys)}
+                  className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all pr-8 ${
+                    selectedSistema?.id === sys.id
+                      ? 'bg-white text-primary font-bold shadow-sm border-l-4 border-l-primary'
+                      : 'hover:bg-muted text-foreground/70'
+                  }`}
+                >
+                  <span className="md:hidden flex justify-center uppercase font-bold">{sys.nombre.substring(0, 2)}</span>
+                  <span className="hidden md:block truncate">{sys.nombre}</span>
+                </button>
+                {!sys.es_default && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteSistema(sys); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    title="Eliminar sistema"
+                  >
+                    <XIcon className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </ScrollArea>
@@ -211,6 +320,9 @@ export default function BloquesView() {
                 <p className="text-sm text-muted-foreground mt-1">Gestión integral de la matriz horaria semanal.</p>
               </div>
               <div className="flex gap-3">
+                <Button variant="outline" className="h-10" onClick={() => setIsTemporadaOpen(true)}>
+                  <CalendarDays className="mr-2 h-4 w-4" /> Temporadas
+                </Button>
                 <Button variant="outline" className="h-10 border-primary/20 text-primary hover:bg-primary/5" onClick={() => setShowMassGenerator(!showMassGenerator)}>
                   <Wand2 className="mr-2 h-4 w-4" /> Generador Masivo
                 </Button>
@@ -363,6 +475,153 @@ export default function BloquesView() {
                 <Input value={newSystemName} onChange={e => setNewSystemName(e.target.value)} placeholder="Ej: Régimen Vespertino" />
             </div>
             <Button onClick={handleCreateSystem} className="w-full h-10 shadow-lg">Crear Sistema</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Temporadas */}
+      <Dialog open={isTemporadaOpen} onOpenChange={setIsTemporadaOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gestión de Temporadas</DialogTitle>
+            <DialogDescription>
+              Cada temporada (semestre) usa un sistema de bloques. La temporada activa determina qué horarios y bloques se muestran en el sistema.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Lista de temporadas existentes */}
+          <div className="space-y-2">
+            {temporadas.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">No hay temporadas registradas</p>
+            ) : (
+              temporadas.map(temp => (
+                <div key={temp.id} className={`flex items-center gap-3 p-3 rounded-lg border ${temp.activa ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm truncate">{temp.nombre}</span>
+                      {temp.activa && (
+                        <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded font-medium">Activa</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {temp.tipo === 'par' ? 'Semestre Par' : 'Semestre Impar'} {temp.año} — {temp.fecha_inicio} a {temp.fecha_fin}
+                    </div>
+                  </div>
+
+                  {/* Selector de sistema de bloques */}
+                  <div className="w-44 flex-shrink-0">
+                    <Select
+                      value={temp.sistema_bloque_id || '_none'}
+                      onValueChange={v => handleUpdateTemporadaSistema(temp, v === '_none' ? '' : v)}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Sin sistema" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Sin sistema</SelectItem>
+                        {sistemas.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      variant={temp.activa ? 'outline' : 'default'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => handleToggleActiva(temp)}
+                    >
+                      {temp.activa ? 'Desactivar' : 'Activar'}
+                    </Button>
+                    {!temp.activa && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => handleDeleteTemporada(temp)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Formulario nueva temporada */}
+          <div className="border-t pt-4 mt-2 space-y-3">
+            <h4 className="font-semibold text-sm">Nueva Temporada</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nombre *</Label>
+                <Input
+                  value={newTemp.nombre}
+                  onChange={e => setNewTemp(p => ({ ...p, nombre: e.target.value }))}
+                  placeholder="Ej: 1er Semestre 2026"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={newTemp.tipo} onValueChange={v => setNewTemp(p => ({ ...p, tipo: v }))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="impar">Impar (1°)</SelectItem>
+                      <SelectItem value="par">Par (2°)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Año</Label>
+                  <Input
+                    type="number"
+                    value={newTemp.año}
+                    onChange={e => setNewTemp(p => ({ ...p, año: parseInt(e.target.value) || new Date().getFullYear() }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha inicio *</Label>
+                <Input
+                  type="date"
+                  value={newTemp.fecha_inicio}
+                  onChange={e => setNewTemp(p => ({ ...p, fecha_inicio: e.target.value }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha fin *</Label>
+                <Input
+                  type="date"
+                  value={newTemp.fecha_fin}
+                  onChange={e => setNewTemp(p => ({ ...p, fecha_fin: e.target.value }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Sistema de bloques</Label>
+                <Select value={newTemp.sistema_bloque_id || '_none'} onValueChange={v => setNewTemp(p => ({ ...p, sistema_bloque_id: v === '_none' ? '' : v }))}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Sin sistema</SelectItem>
+                    {sistemas.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={handleCreateTemporada} className="h-8 text-xs w-full">
+                  <Plus className="h-3 w-3 mr-1" /> Crear Temporada
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

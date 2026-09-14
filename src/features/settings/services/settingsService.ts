@@ -194,15 +194,25 @@ export const getUsers = async (): Promise<Partial<User>[]> => {
 export const uploadImage = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('image', file);
-  
+
   const response = await api.post('/upload.php', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
-  
+
   return response.data.url;
 };
+
+/**
+ * Deriva la URL del thumbnail a partir de la URL principal.
+ * uploads/abc123.webp → uploads/thumbs/abc123.webp
+ */
+export function getThumbUrl(url: string): string {
+  const i = url.lastIndexOf('/');
+  if (i === -1) return url;
+  return url.substring(0, i) + '/thumbs' + url.substring(i);
+}
 
 // --- Configuracion del Sistema ---
 export type SystemConfig = Record<string, string>;

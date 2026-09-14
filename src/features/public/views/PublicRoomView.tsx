@@ -26,7 +26,7 @@ import {
 import {
   MapPin, Users, Building2, Clock, User,
   QrCode, MessageSquare, Send, ChevronLeft, Monitor,
-  Armchair, Info, Navigation, AlertTriangle
+  Armchair, Info, Navigation, AlertTriangle, Camera, ChevronRight, X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { NavigationMap, type RouteInfo } from '../components/NavigationMap'
@@ -51,6 +51,7 @@ interface RoomData {
   lng: number
   mobiliario: string[]
   equipamiento: string[]
+  fotos: string[]
   reglas?: string
   edificio_id: string
   edificio_name: string
@@ -113,6 +114,9 @@ export function PublicRoomView() {
     autor_nombre: '',
   })
   const [sending, setSending] = useState(false)
+
+  // Galería de fotos
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   // Form de ayuda
   const [helpForm, setHelpForm] = useState({ mensaje: '', email: '' })
@@ -296,7 +300,7 @@ export function PublicRoomView() {
 
       {/* QR Modal */}
       {showQR && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowQR(false)}>
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4" onClick={() => setShowQR(false)}>
           <Card className="p-8 text-center max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-4">{room.code} - {room.name}</h3>
             <div className="flex justify-center mb-4">
@@ -473,6 +477,76 @@ export function PublicRoomView() {
         {/* Tab: Info y Mapa */}
         {tab === 'info' && (
           <div className="space-y-4">
+            {/* Fotos */}
+            {room.fotos.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    <Camera className="h-4 w-4 inline mr-1" /> Fotos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`grid gap-2 ${
+                    room.fotos.length === 1 ? 'grid-cols-1' :
+                    room.fotos.length === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3'
+                  }`}>
+                    {room.fotos.map((foto, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setLightboxIndex(i)}
+                        className="relative overflow-hidden rounded-lg border hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <img
+                          src={foto}
+                          alt={`${room.name} - Foto ${i + 1}`}
+                          className="w-full h-40 object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Lightbox */}
+            {lightboxIndex !== null && room.fotos.length > 0 && (
+              <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center" onClick={() => setLightboxIndex(null)}>
+                <button
+                  className="absolute top-4 right-4 text-white/80 hover:text-white z-10"
+                  onClick={() => setLightboxIndex(null)}
+                >
+                  <X className="h-8 w-8" />
+                </button>
+                {room.fotos.length > 1 && (
+                  <>
+                    <button
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10 rotate-180"
+                      onClick={e => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + room.fotos.length) % room.fotos.length) }}
+                    >
+                      <ChevronRight className="h-10 w-10" />
+                    </button>
+                    <button
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10"
+                      onClick={e => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % room.fotos.length) }}
+                    >
+                      <ChevronRight className="h-10 w-10" />
+                    </button>
+                  </>
+                )}
+                <img
+                  src={room.fotos[lightboxIndex]}
+                  alt={`${room.name} - Foto ${lightboxIndex + 1}`}
+                  className="max-h-[85vh] max-w-[90vw] object-contain"
+                  onClick={e => e.stopPropagation()}
+                />
+                {room.fotos.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+                    {lightboxIndex + 1} / {room.fotos.length}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Mapa */}
             {hasValidCoords && (
               <Card>
@@ -487,7 +561,7 @@ export function PublicRoomView() {
                       center={mapCenter}
                       zoom={18}
                       style={{ height: '100%', width: '100%' }}
-                      scrollWheelZoom={false}
+                      scrollWheelZoom={true}
                     >
                       <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
@@ -725,7 +799,7 @@ export function PublicRoomView() {
                         <span className="text-xs text-green-700">Distancia</span>
                         <p className="font-bold text-green-800">
                           {routeInfo.distance >= 1000
-                            ? `${(routeInfo.distance / 1000).toFixed(1)} km`
+                            ? `${(Number(routeInfo.distance) / 1000).toFixed(1)} km`
                             : `${Math.round(routeInfo.distance)} m`}
                         </p>
                       </div>

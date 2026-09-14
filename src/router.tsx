@@ -30,6 +30,7 @@ import { BlockadesView } from './features/blockades/views/BlockadesView'
 import { SessionGeneratorView } from './features/solver/views/SessionGeneratorView'
 import { SolverView } from './features/solver/views/SolverView'
 import { VersioningView } from './features/versioning/views/VersioningView'
+import { StudentGroupsView } from './features/student-groups/views/StudentGroupsView'
 
 // Public views placeholders
 const PublicTeacherView = () => <div className="p-6"><h1 className="text-2xl font-bold">Horario Público - Docente</h1></div>
@@ -127,6 +128,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredRole={['gestor', 'direccion', 'secretaria']}>
             <DocentesView />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'student-groups',
+        element: (
+          <ProtectedRoute requiredRole={['gestor', 'direccion']}>
+            <StudentGroupsView />
           </ProtectedRoute>
         ),
       },

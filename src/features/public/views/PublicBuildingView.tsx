@@ -8,7 +8,7 @@ import type { ApiResponse } from '@/shared/types'
 import { BuildingRoomCard, type SalaEdificio } from '../components/BuildingRoomCard'
 import {
   Building2, Clock, ChevronLeft, RefreshCw, AlertTriangle,
-  Mail, QrCode
+  Mail, QrCode, ChevronRight, X, Camera
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
@@ -28,6 +28,7 @@ interface EdificioData {
   lat: number
   lng: number
   descripcion?: string
+  fotos: string[]
 }
 
 interface BuildingResponse {
@@ -48,6 +49,7 @@ export function PublicBuildingView() {
   const [error, setError] = useState<string | null>(null)
   const [showQR, setShowQR] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -159,7 +161,67 @@ export function PublicBuildingView() {
         </div>
       )}
 
+      {/* Lightbox fotos edificio */}
+      {lightboxIndex !== null && edificio.fotos && edificio.fotos.length > 0 && (
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center" onClick={() => setLightboxIndex(null)}>
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white z-10"
+            onClick={() => setLightboxIndex(null)}
+          >
+            <X className="h-8 w-8" />
+          </button>
+          {edificio.fotos.length > 1 && (
+            <>
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10 rotate-180"
+                onClick={e => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + edificio.fotos.length) % edificio.fotos.length) }}
+              >
+                <ChevronRight className="h-10 w-10" />
+              </button>
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white z-10"
+                onClick={e => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % edificio.fotos.length) }}
+              >
+                <ChevronRight className="h-10 w-10" />
+              </button>
+            </>
+          )}
+          <img
+            src={edificio.fotos[lightboxIndex]}
+            alt={`${edificio.name} - Foto ${lightboxIndex + 1}`}
+            className="max-h-[85vh] max-w-[90vw] object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+          {edificio.fotos.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+              {lightboxIndex + 1} / {edificio.fotos.length}
+            </div>
+          )}
+        </div>
+      )}
+
       <main className="container mx-auto px-4 py-4 space-y-4">
+        {/* Banner foto edificio */}
+        {edificio.fotos && edificio.fotos.length > 0 && (
+          <div className="relative rounded-lg overflow-hidden">
+            <button
+              onClick={() => setLightboxIndex(0)}
+              className="w-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+            >
+              <img
+                src={edificio.fotos[0]}
+                alt={edificio.name}
+                className="w-full h-48 md:h-64 object-cover rounded-lg"
+              />
+              {edificio.fotos.length > 1 && (
+                <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <Camera className="h-3 w-3" /> {edificio.fotos.length} fotos
+                </div>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Alerta de ayuda */}
         {totalAyuda > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
